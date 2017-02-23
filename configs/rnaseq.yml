@@ -1,0 +1,40 @@
+shared_memory: True
+
+cutadapt:
+  options:
+    - -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC
+    - --minimum-length 20
+
+star_align:
+  index_path: data/interim/star/Mus_musculus.GRCm38.dna.primary_assembly.51bp
+  gtf_path: data/external/ensembl/Mus_musculus.GRCm38.76.gtf
+  options:
+  threads: 5
+
+tophat2:
+  index_path: data/interim/references/tophat/Mus_musculus.GRCm38.dna.primary_assembly
+  transcriptome_path: data/interim/references/tophat/Mus_musculus.GRCm38.76.t2onc.tophat2.transcriptome
+  options:
+    - --prefilter-multi-hits
+  threads: 5
+
+feature_counts_gene:
+  annotation_file: data/external/ensembl/Mus_musculus.GRCm38.76.gtf
+  options:
+  threads: 1
+
+feature_counts_exon:
+  annotation_file: data/external/ensembl/Mus_musculus.GRCm38.76.DEXSeq.no_aggr.gtf
+  options:
+    - -f  # Feature level
+    - -t exonic_part  # Use 'exonic_part' features
+    - --minOverlap 1  # Minimum overlap with exon
+    - -O  # Include if spanning 1+ exons
+  threads: 1
+
+sambamba_sort:
+  tmp_dir: tmp
+  threads: 5
+
+sambamba_index:
+  threads: 2

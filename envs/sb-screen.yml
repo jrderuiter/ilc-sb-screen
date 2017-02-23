@@ -1,0 +1,76 @@
+name: sb-screen
+channels:
+  - bioconda
+  - r
+  - defaults
+  - conda-forge
+  - jrderuiter
+dependencies:
+  ##############################################################################
+  # General                                                                    #
+  ##############################################################################
+  - python ==3.5.2
+  - pandas ==0.19
+
+  ##############################################################################
+  # Pipelines                                                                  #
+  ##############################################################################
+
+  # General
+  - snakemake =3.8.*
+  - graphviz =2.38.0
+  - pyyaml =3.11
+
+  # RNA-seq
+  - cutadapt =1.12
+  - fastqc=0.11.5
+  - multiqc =0.9
+  - star =2.5.2b
+  - subread =1.5.0.post3
+  - sambamba =0.6.3
+
+  # Insertions
+  # - pyim
+  - bioconductor-bsgenome.mmusculus.ucsc.mm10
+  - cutadapt =1.12
+  # - bowtie2 =2.2.8
+
+  ##############################################################################
+  # Notebook                                                                   #
+  ##############################################################################
+
+  # General
+  - jupyter ==1.0.0
+  - notebook ==4.2.2
+
+  - pandas ==0.19
+  - numexpr ==2.6.1
+  - numpy ==1.10.4
+  - toolz ==0.8.0
+
+  - openpyxl ==2.3.2
+  - statsmodels ==0.6.1
+
+  # IM-Fusion
+  - imfusion
+  - future ==0.15.2
+
+  # PAM50 comparison
+  - bioconductor-sva ==3.15.0
+
+  # NMF analysis
+  - rpy2 >= 2.8.2
+  - r-base =3.3.1
+  # - 'r-base=3.1.1-1' # [linux]
+  - r-readr ==0.2.2
+  - r-nmf ==0.20.6
+
+  - pip:
+    - pybiomart ==0.1
+    - git+git://github.com/jrderuiter/genemap.git#egg=genemap
+
+  # MISC.
+  # - pytables ==3.2.3.1  # for hdf5
+  # - geneviz ==0.1.0-dev0
+  # ?
+  # - scikit-learn ==0.17.1

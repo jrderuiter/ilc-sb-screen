@@ -1,0 +1,367 @@
+"""Single-end STAR counts pipeline."""
+
+import os
+from os import path
+
+import numpy as np
+import pandas as pd
+
+
+################################################################################
+# Globals                                                                      #
+################################################################################
+
+samples = (pd.read_csv(config['samples'], sep='\t')
+             .set_index('sample', drop=False))
+shared_memory = config['shared_memory']
+
+# Top-level data directories.
+interim_dir = config['interim_dir']
+processed_dir = config['processed_dir']
+log_dir = config['log_dir']
+qc_dir = config['qc_dir']
+
+# More fine-grained directories.
+fastq_download_dir = path.join(interim_dir, 'fastq', 'downloaded')
+fastq_trimmed_dir = path.join(interim_dir, 'fastq', 'trimmed')
+star_dir = path.join(interim_dir, 'star')
+bam_dir = path.join(interim_dir, 'bam')
+counts_dir = path.join(interim_dir, 'counts')
+merged_dir = processed_dir
+
+
+################################################################################
+# Functions                                                                    #
+################################################################################
+
+def get_samples():
+    return set(samples['sample'])
+
+
+def format_options(options):
+    return ' '.join(options or [])
+
+
+def normalize_counts(counts):
+    size_factors = estimate_size_factors(counts)
+    return counts / size_factors
+
+
+def estimate_size_factors(counts):
+    log_geo_means = np.mean(np.log(counts), axis=1)
+    sf = np.apply_along_axis(_estimate_size_factors_col, axis=0,
+                             arr=counts, log_geo_means=log_geo_means)
+    return sf
+
+
+def _estimate_size_factors_col(counts, log_geo_means):
+    log_counts = np.log(counts)
+    mask = np.isfinite(log_geo_means) & (counts > 0)
+    return np.exp(np.median((log_counts - log_geo_means)[mask]))
+
+
+def symlink_relative(src_path, dest_path, dest_is_dir=False):
+    """Symlinks file using relative path."""
+
+    if dest_is_dir:
+        dest_dir = dest_path
+        dest_path = path.join(dest_dir, path.basename(src_path))
+    else:
+        dest_dir = path.dirname(dest_path)
+
+    if path.exists(dest_path):
+        os.unlink(dest_path)
+
+    rel_path = path.relpath(src_path, dest_dir)
+    os.symlink(rel_path, dest_path)
+
+
+def read_gene_counts(file_path):
+    """Reads gene counts into a DataFrame."""
+
+    df = (pd.read_csv(file_path, sep='\t', comment='#',
+                      dtype={'Chr': str}, index_col=0)
+          .drop(['Chr', 'Start', 'End', 'Length', 'Strand'], axis=1)
+          .rename(columns=lambda c: path.splitext(path.basename(c))[0]))
+    df.index.name = 'gene_id'
+
+    return df
+
+
+def read_exon_counts(file_path):
+    """Reads exon counts into a DataFrame."""
+
+    df = (pd.read_csv(file_path, sep='\t', comment='#',
+                      dtype={'Chr': str}, index_col=[0, 1, 2, 3, 4])
+          .drop(['Length'], axis=1)
+          .rename(columns=lambda c: path.splitext(path.basename(c))[0]))
+    df.index.names = ['gene_id', 'chr', 'start', 'end', 'strand']
+
+    return df
+
+
+################################################################################
+# Rules                                                                        #
+################################################################################
+
+rule all:
+    input:
+        path.join(qc_dir, 'multiqc_report.html'),
+        path.join(merged_dir, 'gene_counts.txt'),
+        path.join(merged_dir, 'exon_counts.txt'),
+        path.join(merged_dir, 'gene_counts.log2.txt')
+
+
+rule download_fastq:
+    params:
+        url=lambda wc: samples.ix[wc.sample, 'fastq1']
+    output:
+        path.join(fastq_download_dir, '{sample}.fastq.gz')
+    resources:
+        network=1
+    shell:
+        'wget --quiet -O {output} {params.url}'
+
+
+rule cutadapt:
+    input:
+        path.join(fastq_download_dir, '{sample}.fastq.gz')
+    output:
+        bam=temp(path.join(fastq_trimmed_dir, '{sample}.fastq.gz')),
+        qc=path.join(qc_dir, 'cutadapt', '{sample}.txt')
+    params:
+        options=format_options(config['cutadapt']['options'])
+    log:
+        path.join(log_dir, 'cutadapt', '{sample}.log'),
+    shell:
+        'cutadapt {params.options} -o {output.bam}'
+        ' {input} > {output.qc} 2> {log}'
+
+
+rule fastqc:
+    input:
+        path.join(fastq_trimmed_dir, '{sample}.fastq.gz')
+    output:
+        path.join(qc_dir, 'fastqc', '{sample}_fastqc.zip'),
+    params:
+        output_dir=path.join(qc_dir, 'fastqc')
+    shell:
+        'mkdir -p {params.output_dir} && '
+        'fastqc --quiet --outdir {params.output_dir} {input}'
+
+
+rule star_preload:
+    params:
+        index=config['star_align']['index_path']
+    output:
+        temp(touch('.star_preload.done'))
+    log:
+        path.join(log_dir, 'star_align', 'genome_preload.log')
+    shell:
+        'STAR --genomeLoad LoadAndExit --genomeDir {params.index} > {log}'
+
+
+def align_inputs(wildcards):
+    fastq_name = ('{sample}.fastq.gz'
+                  .format(sample=wildcards.sample))
+    fastq_path = path.join(fastq_trimmed_dir, fastq_name)
+
+    if shared_memory:
+        return [fastq_path, '.star_preload.done']
+    else:
+        return [fastq_path]
+
+
+rule star_align:
+    input:
+        align_inputs
+    output:
+        bam=temp(path.join(star_dir, '{sample}/Aligned.out.bam'))
+    params:
+        index=config['star_align']['index_path'],
+        options=format_options(config['star_align']['options']),
+        out_prefix=path.join(star_dir, '{sample}/'),
+        qc_dir=path.join(qc_dir, 'star', '{sample}')
+    threads:
+        config['star_align']['threads']
+    resources:
+        memory=4 if shared_memory else 30
+    log:
+        path.join(log_dir, 'star', '{sample}.log')
+    run:
+        # Run star.
+        shared_mem_opt = ' --genomeLoad LoadAndKeep' if shared_memory else ''
+
+        shell('mkdir -p {params.out_prefix}')
+
+        shell(
+            'STAR {params.options} --genomeDir {params.index}'
+            ' --outFileNamePrefix {params.out_prefix}'
+            ' --runThreadN {threads} --readFilesIn {input[0]}'
+            ' --readFilesCommand gunzip -c'
+            ' --outSAMtype BAM Unsorted' +
+            shared_mem_opt +
+            ' &> {log}')
+
+        # Link output log into qc dir
+        shell('mkdir -p ' + params.qc_dir)
+        log_path = params.out_prefix + 'Log.final.out'
+        symlink_relative(log_path, params.qc_dir, dest_is_dir=True)
+
+
+rule sambamba_sort:
+    input:
+        path.join(star_dir, '{sample}/Aligned.out.bam')
+    output:
+        path.join(star_dir, '{sample}/Aligned.sortedByCoord.out.bam')
+    params:
+        tmp_dir=config['sambamba_sort']['tmp_dir']
+    threads:
+        config['sambamba_sort']['threads']
+    resources:
+        memory=3
+    log:
+        path.join(log_dir, 'sambamba_sort', '{sample}.log')
+    shell:
+        'sambamba sort -o {output} --tmpdir {params.tmp_dir}'
+        ' -t {threads} {input} 2> {log}'
+
+
+rule star_unload:
+    input:
+        expand(path.join(star_dir, '{sample}/Aligned.sortedByCoord.out.bam'),
+               sample=get_samples())
+    output:
+        touch('.star_unload.done')
+    params:
+        index=config['star_align']['index_path']
+    log:
+        path.join(log_dir, 'star_align', 'unload.log')
+    shell:
+        'STAR --genomeLoad Remove --genomeDir {params.index} > {log}'
+
+
+rule star_symlink:
+    input:
+        path.join(star_dir, '{sample}/Aligned.sortedByCoord.out.bam')
+    output:
+        path.join(bam_dir, '{sample}.bam')
+    run:
+        symlink_relative(input[0], output[0])
+        shell('touch -h {output}')
+
+
+rule sambamba_index:
+    input:
+        path.join(bam_dir, '{sample}.bam')
+    output:
+        path.join(bam_dir, '{sample}.bam.bai')
+    threads:
+        config['sambamba_index']['threads']
+    shell:
+        'sambamba index -t {threads} {input} {output}'
+
+
+rule samtools_stats:
+    input:
+        path.join(bam_dir, '{sample}.bam')
+    output:
+        path.join(qc_dir, 'samtools_stats', '{sample}.txt')
+    shell:
+        'samtools stats {input} > {output}'
+
+
+rule feature_counts_gene:
+    input:
+        bam=path.join(bam_dir, '{sample}.bam'),
+        bai=path.join(bam_dir, '{sample}.bam.bai')
+    output:
+        path.join(counts_dir, '{sample}.gene.txt')
+    params:
+        options=format_options(config['feature_counts_gene']['options']),
+        annotation=config['feature_counts_gene']['annotation_file'],
+        qc_dir=path.join(qc_dir, 'feature_counts_gene')
+    threads:
+        config['feature_counts_gene']['threads']
+    log:
+        path.join(log_dir, 'feature_counts_gene', '{sample}.txt')
+    run:
+        # Run feature counts.
+        shell('featureCounts {params.options} -a {params.annotation} '
+              '-o {output} -T {threads} {input.bam} 2> {log}')
+
+        # Link summary into qc dir
+        shell('mkdir -p ' + params.qc_dir)
+        summary_path = str(output) + '.summary'
+        symlink_relative(summary_path, params.qc_dir, dest_is_dir=True)
+
+
+rule feature_counts_exon:
+    input:
+        bam=path.join(bam_dir, '{sample}.bam'),
+        bai=path.join(bam_dir, '{sample}.bam.bai')
+    output:
+        path.join(counts_dir, '{sample}.exon.txt')
+    params:
+        options=format_options(config['feature_counts_exon']['options']),
+        annotation=config['feature_counts_exon']['annotation_file'],
+        qc_dir=path.join(qc_dir, 'feature_counts_exon')
+    threads:
+        config['feature_counts_exon']['threads']
+    log:
+        path.join(log_dir, 'feature_counts_exon', '{sample}.txt')
+    shell:
+        'featureCounts {params.options} -a {params.annotation}'
+        ' -o {output} -T {threads} {input.bam} 2> {log}'
+
+
+rule multiqc:
+    input:
+        expand(path.join(qc_dir, 'fastqc', '{sample}_fastqc.zip'),
+               sample=get_samples()),
+        expand(path.join(counts_dir, '{sample}.gene.txt'), sample=get_samples()),
+        expand(path.join(counts_dir, '{sample}.exon.txt'), sample=get_samples()),
+        expand(path.join(qc_dir, 'samtools_stats', '{sample}.txt'), sample=get_samples())
+    output:
+        path.join(qc_dir, 'multiqc_report.html')
+    params:
+        qc_dir=qc_dir,
+        output_dir=qc_dir
+    shell:
+        'multiqc --force --outdir {params.output_dir} {params.qc_dir}'
+
+
+rule merge_counts_gene:
+    input:
+        expand(path.join(counts_dir, '{sample}.gene.txt'), sample=get_samples())
+    output:
+        path.join(merged_dir, 'gene_counts.txt')
+    run:
+        frames = (read_gene_counts(fp) for fp in input)
+        merged = pd.concat(frames, axis=1)
+        merged.to_csv(output[0], sep='\t', index=True)
+
+
+rule merge_counts_exon:
+    input:
+        expand(path.join(counts_dir, '{sample}.exon.txt'), sample=get_samples())
+    output:
+        path.join(merged_dir, 'exon_counts.txt')
+    run:
+        frames = (read_exon_counts(fp) for fp in input)
+        merged = pd.concat(frames, axis=1)
+        merged.to_csv(output[0], sep='\t', index=True)
+
+
+rule normalize_counts_gene:
+    input:
+        path.join(merged_dir, 'gene_counts.txt')
+    output:
+        path.join(merged_dir, 'gene_counts.log2.txt')
+    run:
+        counts = pd.read_csv(input[0], sep='\t', index_col=0)
+
+        norm_counts = normalize_counts(counts)
+        norm_counts = np.log2(norm_counts + 1)
+
+        counts.to_csv(output[0], sep='\t', index=True)

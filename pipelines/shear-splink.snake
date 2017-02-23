@@ -1,0 +1,193 @@
+"""SB insertion pipeline."""
+
+from os import path
+import pandas as pd
+
+
+################################################################################
+# Globals                                                                      #
+################################################################################
+
+samples = (pd.read_csv(config['samples'], sep='\t',
+                       dtype={'t2onc_type': str})
+             .query('include_insertions == "yes"')
+             .set_index('sample', drop=False))
+
+# Top-level data directories.
+raw_dir = config['raw_dir']
+interim_dir = config['interim_dir']
+processed_dir = config['processed_dir']
+log_dir = config['log_dir']
+
+# More fine-grained directories.
+fasta_dir = path.join(raw_dir, 'shear_splink')
+align_dir = path.join(interim_dir, 'per_run')
+split_dir = path.join(interim_dir, 'per_sample')
+merged_dir = path.join(processed_dir)
+
+
+################################################################################
+# Functions                                                                    #
+################################################################################
+
+def get_samples():
+    return set(samples['sample'])
+
+
+def get_strains():
+    return set(samples['t2onc_type'])
+
+
+def get_strain_samples(wildcards):
+    if wildcards.strain != 'all':
+        subset = samples.ix[samples['t2onc_type'] == wildcards.strain]
+    else:
+        subset = samples
+    return set(subset['sample'])
+
+
+def format_options(options):
+    return ' '.join(options or [])
+
+
+################################################################################
+# Rules                                                                        #
+################################################################################
+
+rule all:
+    input:
+        expand(path.join(merged_dir, '{strain}', 'insertions.cis.rbm.txt'),
+               strain=get_strains() | {'all'}),
+        expand(path.join(merged_dir, '{strain}', 'insertions.rbm.txt'),
+               strain=get_strains() | {'all'})
+
+
+rule pyim_align:
+    input:
+        fasta=path.join(fasta_dir, '{run}.TCA.454Reads.fna'),
+        mapping=path.join(fasta_dir, '{run}.TCA.454Reads.barcodes.txt')
+    output:
+        path.join(align_dir, '{run}.txt')
+    params:
+        transposon=config['pyim_align']['transposon'],
+        linker=config['pyim_align']['linker'],
+        contaminants=config['pyim_align']['contaminants'],
+        index=config['pyim_align']['index'],
+        barcodes=config['pyim_align']['barcodes'],
+    	options=format_options(config['pyim_align']['options'])
+    log:
+        path.join(log_dir, 'pylim_align', '{run}.log')
+    shell:
+        'pyim-align single-multiplexed'
+        ' --reads {input.fasta} --output {output}'
+        ' --transposon {params.transposon}'
+        ' --linker {params.linker}'
+        ' --contaminants {params.contaminants}'
+        ' --bowtie_index {params.index}'
+        ' --barcodes {params.barcodes}'
+        ' --barcode_mapping {input.mapping}'
+        ' {params.options} 2> {log}'
+
+
+def split_samples(wildcards):
+    subset = samples.ix[samples['dnaseq_run'] == wildcards.run]
+    return set(subset.index)
+
+
+rule pyim_split:
+    input:
+        path.join(align_dir, '{run}.txt')
+    output:
+        path.join(split_dir, '{run}')
+    params:
+        samples=split_samples
+    log:
+        path.join(log_dir, 'pyim_split', '{run}.log')
+    shell:
+        'pyim-split --insertions {input} --output_dir {output}'
+        ' --samples {params.samples} &> {log}'
+
+
+def pyim_merge_inputs(wildcards):
+    subset = samples.ix[get_strain_samples(wildcards)]
+    return [path.join(split_dir, tup.dnaseq_run, '{}.txt'.format(tup.Index))
+            for tup in subset.itertuples()]
+
+
+rule pyim_merge:
+    input:
+        expand(path.join(split_dir, '{run}'),
+               run=set(samples['dnaseq_run']))
+    output:
+        path.join(merged_dir, '{strain}', 'insertions.txt')
+    params:
+        insertions=pyim_merge_inputs
+    log:
+        path.join(log_dir, 'pyim_merge', '{strain}.log')
+    shell:
+        'pyim-merge --insertions {params.insertions} --output {output} &> {log}'
+
+
+rule pyim_cis:
+    input:
+        path.join(merged_dir, '{strain}', 'insertions.txt')
+    output:
+        insertions=path.join(merged_dir, '{strain}', 'insertions.cis.txt'),
+        sites=path.join(merged_dir, '{strain}', 'insertions.cis.sites.txt')
+    params:
+        pattern=config['pyim_cis']['pattern'],
+        options=format_options(config['pyim_cis']['options'])
+    threads:
+        config['pyim_cis']['threads']
+    log:
+        path.join(log_dir, 'pyim_cis', '{strain}.log')
+    shell:
+        'pyim-cis cimpl --insertions {input}'
+        ' --output {output.insertions}'
+        ' --output_sites {output.sites}'
+        ' --pattern {params.pattern}'
+        ' --threads {threads}'
+        ' {params.options} &> {log}'
+
+
+rule pyim_annotate_cis:
+    input:
+        insertions=path.join(merged_dir, '{strain}', 'insertions.cis.txt'),
+        cis_sites=path.join(merged_dir, '{strain}', 'insertions.cis.sites.txt')
+    output:
+        path.join(merged_dir, '{strain}', 'insertions.cis.rbm.txt')
+    params:
+        reference_gtf=config['pyim_annotate']['reference_gtf'],
+        preset=config['pyim_annotate']['preset'],
+        options=format_options(config['pyim_annotate']['options'])
+    log:
+        path.join(log_dir, 'pyim_annotate_cis', '{strain}.log')
+    shell:
+        'pyim-annotate rbm'
+        ' --insertions {input.insertions}'
+        ' --output {output}'
+        ' --preset {params.preset}'
+        ' --reference_gtf {params.reference_gtf}'
+        ' --cis_sites {input.cis_sites}'
+        ' --drop_cis_id'
+        ' {params.options} &> {log}'
+
+
+rule pyim_annotate:
+    input:
+        insertions=path.join(merged_dir, '{strain}', 'insertions.txt')
+    output:
+        path.join(merged_dir, '{strain}', 'insertions.rbm.txt')
+    params:
+        reference_gtf=config['pyim_annotate']['reference_gtf'],
+        preset=config['pyim_annotate']['preset'],
+        options=format_options(config['pyim_annotate']['options'])
+    log:
+        path.join(log_dir, 'pyim_annotate', '{strain}.log')
+    shell:
+        'pyim-annotate rbm'
+        ' --insertions {input.insertions}'
+        ' --output {output}'
+        ' --preset {params.preset}'
+        ' --reference_gtf {params.reference_gtf}'
+        ' {params.options} &> {log}'
