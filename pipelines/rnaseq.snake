@@ -364,4 +364,4 @@ rule normalize_counts_gene:
         norm_counts = normalize_counts(counts)
         norm_counts = np.log2(norm_counts + 1)
 
-        counts.to_csv(output[0], sep='\t', index=True)
+        norm_counts.to_csv(output[0], sep='\t', index=True)

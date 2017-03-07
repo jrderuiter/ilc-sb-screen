@@ -10,7 +10,7 @@ import pandas as pd
 
 samples = (pd.read_csv(config['samples'], sep='\t',
                        dtype={'t2onc_type': str})
-             .query('include_insertions == "yes"')
+             .query('include_shearsplink == True')
              .set_index('sample', drop=False))
 
 # Top-level data directories.

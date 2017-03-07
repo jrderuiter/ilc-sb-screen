@@ -132,9 +132,11 @@ class ClusterGrid(Grid):
         """
 
         # Merge default ratios with any overridden ratios
-        default_ratios = {'dendrogram': min(2. / figsize[axis], .2),
-                          'side_colors': 0.05,
-                          'heatmap': 0.8}
+        default_ratios = {
+            'dendrogram': min(2. / figsize[axis], .2),
+            'side_colors': 0.05,
+            'heatmap': 0.8
+        }
 
         ratios = merge_dicts(default_ratios, ratios or {})
 
@@ -322,8 +324,8 @@ class ClusterGrid(Grid):
             colors = [colors]
         color_to_value = dict((col, i) for i, col in enumerate(all_colors))
 
-        matrix = np.array([color_to_value[c] for color in colors
-                           for c in color])
+        matrix = np.array(
+            [color_to_value[c] for color in colors for c in color])
 
         shape = (n, m)
         matrix = matrix.reshape(shape)

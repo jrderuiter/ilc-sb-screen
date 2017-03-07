@@ -1,19 +1,54 @@
-import pandas as pd
-import matplotlib.pyplot as plt
+import math
 
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
 import seaborn as sns
 import toolz
 
-from ..seaborn import clustermap as _clustermap
-from ..util import color_annotation
+from nbsupport.morphology import MORPHOLOGY_ORDER, MORPHOLOGY_COLORS
+from nbsupport.util.clustermap import color_annotation
+from nbsupport.util.seaborn import clustermap
+
+from .util import tidy_expression
+
+SUBTYPE_ORDER = ['ILC-1', 'ILC-2', 'EMT-like', 'Squamous-like']
+SUBTYPE_COLORS = [sns.color_palette()[i] for i in list(range(3)) + [4]]
 
 
-def plot_nmf_coefficients(nmf_coef,
-                          sort=True,
-                          names=None,
-                          order=None,
-                          **kwargs):
-    default_kws = dict(cmap='YlOrRd')
+def plot_nmf_subtypes(nmf_coef, morphology, **kwargs):
+    morphology_colors = color_annotation(
+        morphology[MORPHOLOGY_ORDER], colors=MORPHOLOGY_COLORS)[0]
+
+    g = plot_nmf_coefficientmap(
+        nmf_coef,
+        sort=True,
+        order=SUBTYPE_ORDER,
+        col_colors=morphology_colors,
+        col_ratios=dict(side_colors=0.5),
+        row_colors=SUBTYPE_COLORS,
+        row_ratios=dict(side_colors=0.011),
+        cmap='Purples',
+        colorbar=False,
+        **kwargs)
+
+    g.ax_heatmap.set_yticklabels([])
+
+    g.ax_row_colors.set_yticks(np.arange(nmf_coef.shape[1], 0, -1) - 0.5)
+    g.ax_row_colors.set_yticklabels(nmf_coef.columns)
+
+    g.ax_row_colors.set_ylabel('NMF clusters')
+    g.ax_col_colors.set_title('NMF subtypes')
+
+    return g
+
+
+def plot_nmf_coefficientmap(nmf_coef,
+                            sort=True,
+                            names=None,
+                            order=None,
+                            **kwargs):
+    default_kws = dict(cmap='Purples')
 
     # Assign names if given.
     if names is not None:
@@ -25,10 +60,10 @@ def plot_nmf_coefficients(nmf_coef,
         nmf_coef = nmf_coef[order]
 
     if sort:
-        nmf_coef = nmf_sort_by_cluster(nmf_coef)
+        nmf_coef = _sort_by_subtype(nmf_coef)
 
     # Create cluster map.
-    g = _clustermap(
+    g = clustermap(
         nmf_coef.T,
         row_cluster=False,
         col_cluster=not sort,
@@ -39,7 +74,6 @@ def plot_nmf_coefficients(nmf_coef,
 
     # Correct rotation.
     plt.setp(g.ax_heatmap.get_yticklabels(), rotation=0)
-    # g.ax_heatmap.set_yticklabels([])
 
     # For some reason we need to correct rotation?
     if g.ax_col_colors is not None:
@@ -52,22 +86,12 @@ def plot_nmf_coefficients(nmf_coef,
     return g
 
 
-def _reindex_colors(colors, index):
-    if colors is None or not isinstance(colors, pd.DataFrame):
-        return colors
-    else:
-        missing = set(index) - set(colors.index)
-        if len(missing) > 0:
-            raise ValueError('Missing rows {}'.format(missing))
-        return colors.ix[index]
-
-
-def nmf_sort_by_cluster(nmf_coef):
+def _sort_by_subtype(nmf_coef):
     # Assign to clusters.
-    clust = nmf_assign_clusters(nmf_coef)
+    clust = assign_nmf_subtypes(nmf_coef)
 
     # Sort using assignments.
-    clust['sort_value'] = clust['cluster'].map(
+    clust['sort_value'] = clust['subtype'].map(
         dict(zip(nmf_coef.columns, range(nmf_coef.shape[0]))))
     clust.sort_values(
         ['sort_value', 'max_coef'], ascending=[True, False], inplace=True)
@@ -78,60 +102,81 @@ def nmf_sort_by_cluster(nmf_coef):
     return nmf_coef
 
 
-def nmf_assign_clusters(nmf_coef):
-    return pd.DataFrame({'cluster': nmf_coef.idxmax(axis=1),
-                         'max_coef': nmf_coef.max(axis=1)})
+def assign_nmf_subtypes(nmf_coef):
+    return pd.DataFrame({
+        'subtype': nmf_coef.idxmax(axis=1),
+        'max_coef': nmf_coef.max(axis=1)
+    })
 
 
-def plot_gene_boxplot(data, gene, cluster, ax=None, **kwargs):
-    """Plots expression of given gene as boxplot, stratified by clusters."""
+def plot_boxplot(expr, design, gene, ax=None, **kwargs):
+    if ax is None:
+        _, ax = plt.subplots()
 
-    # Draw boxplot.
-    ax = sns.boxplot(data=data, x=cluster, y=gene, ax=ax, **kwargs)
+    data = tidy_expression(expr.ix[[gene]], design)
 
-    # Style lines.
-    plt.setp(ax.lines, color='0.2')
-    plt.setp(ax.artists, edgecolor='0.2')
-    sns.despine(ax=ax)
+    sns.boxplot(
+        data=data,
+        x='subtype',
+        y='value',
+        ax=ax,
+        order=SUBTYPE_ORDER,
+        palette=SUBTYPE_COLORS,
+        **kwargs)
 
-    # Style x-labels.
+    ax.set_xlabel('Subtype')
+    ax.set_ylabel('Expression')
+    ax.set_title(gene, fontstyle='italic')
+
+    # Style xtick labels.
     plt.setp(ax.get_xticklabels(), rotation=25)
     ax.set_xlabel('')
+
+    sns.despine(ax=ax)
 
     return ax
 
 
-def plot_gene_boxplots(data, genes, cluster, axes=None, **kwargs):
-    """Plots expression of multiple genes as boxplot, stratified by clusters."""
+def plot_boxplots(expr, design, genes, ncols=None, figsize=None, **kwargs):
+    if ncols is None:
+        ncols, nrows = len(genes), 1
+    else:
+        nrows = math.ceil(len(genes) / ncols)
 
-    if axes is None:
-        _, axes = plt.subplots(ncols=len(genes))
-        axes = [axes] if len(genes) == 1 else axes.flatten()
+    fig, axes = plt.subplots(
+        ncols=ncols, nrows=nrows, sharex=True, figsize=figsize)
 
-    for gene, ax in zip(genes, axes):
-        plot_gene_boxplot(data, gene, cluster, ax=ax, **kwargs)
-        ax.set_title(gene, fontstyle='italic')
+    if nrows == 1:
+        axes = np.array([axes])
 
-    # Style y-labels.
-    axes[0].set_ylabel('Expression')
-    for ax in axes[1:]:
-        ax.set_ylabel('')
+    for gene, ax in zip(genes, axes.flatten()):
+        plot_boxplot(expr, design, gene, ax=ax, **kwargs)
 
-    return axes
+    for row in axes:
+        for ax in row[1:]:
+            ax.set_ylabel('')
+
+    plt.tight_layout()
+
+    return fig, axes
 
 
-def plot_gene_heatmap(data,
-                      genes,
-                      cluster,
-                      order=None,
-                      palette=None,
-                      col_cluster=True,
-                      **kwargs):
+def plot_heatmap(expr,
+                 design,
+                 genes,
+                 order=None,
+                 palette=None,
+                 col_cluster=True,
+                 **kwargs):
+
+    data = pd.concat([expr.ix[genes].T, design[['subtype']]], axis=1)
+
     palette = palette or sns.color_palette()
-    order = order or list(data[cluster].unique())
+    order = order or list(data['subtype'].unique())
 
-    clusters = data[cluster].astype('category', categories=order, ordered=True)
-    clusters.name = cluster.capitalize()
+    clusters = data['subtype'].astype(
+        'category', categories=order, ordered=True)
+    clusters.name = 'Subtype'
 
     cluster_colors = color_annotation(clusters.to_frame(), [palette])[0]
 
@@ -139,7 +184,7 @@ def plot_gene_heatmap(data,
         sample_order = clusters.sort_values().index
         data = data.ix[sample_order]
 
-    cm = _clustermap(
+    cm = clustermap(
         data[genes].T,
         z_score=0,
         row_cluster=False,
@@ -160,6 +205,3 @@ def plot_gene_heatmap(data,
     plt.setp(cm.ax_heatmap.get_yticklabels(), rotation=0, fontstyle='italic')
 
     return cm
-
-    # col_cluster=False, colorbar=False,
-#, col_ratios={'side_colors': 0.12})

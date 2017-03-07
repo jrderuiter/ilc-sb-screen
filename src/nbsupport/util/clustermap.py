@@ -7,21 +7,6 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LinearSegmentedColormap, Normalize, rgb2hex
 
 
-def sort_matrix(df, sort_columns=True):
-    """Sorts a DataFrame, first by its columns and then by its rows."""
-
-    if sort_columns:
-        freqs = (df.astype(float) > 0).sum(axis=0)
-        order = list(freqs.sort_values(ascending=False).index)
-    else:
-        order = list(df.columns)
-
-    df_sorted = df[order]
-    df_sorted = df_sorted.sort_values(by=order, ascending=False)
-
-    return df_sorted
-
-
 def color_annotation(df, colors, vlims=None, bg_color='#ffffff'):
     """Converts a data frame of annotations to colors."""
 
@@ -112,3 +97,18 @@ def _rgb_to_hex(rgb, normalized=True):
     if normalized:
         rgb = tuple(map(lambda x: int(x * 255), rgb))
     return '#%02x%02x%02x' % rgb
+
+
+def sort_matrix(df, sort_columns=True):
+    """Sorts a DataFrame, first by its columns and then by its rows."""
+
+    if sort_columns:
+        freqs = (df.astype(float) > 0).sum(axis=0)
+        order = list(freqs.sort_values(ascending=False).index)
+    else:
+        order = list(df.columns)
+
+    df_sorted = df[order]
+    df_sorted = df_sorted.sort_values(by=order, ascending=False)
+
+    return df_sorted

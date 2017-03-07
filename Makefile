@@ -50,13 +50,13 @@ preload_star_index: $(STAR_INDEX)
 	rm -rf _STARtmp
 
 shear_splink: $(BOWTIE_INDEX) $(ENSEMBL_GTF)
-	snakemake $(SNAKEMAKE_ARGS) -s pipelines/shear_splink.snake \
-		--configfile ./configs/insertions.yml \
-		--config samples=data/raw/samples.txt \
+	snakemake $(SNAKEMAKE_ARGS) -s pipelines/shear-splink.snake \
+		--configfile ./configs/shear-splink.yml \
+		--config samples=data/raw/sb/samples.txt \
 				 raw_dir=data/raw \
-		         interim_dir=data/interim/shear_splink \
-				 processed_dir=data/processed/shear_splink \
-				 log_dir=logs/shear_splink
+		         interim_dir=data/interim/sb/shear_splink \
+				 processed_dir=data/processed/sb/shear_splink \
+				 log_dir=logs/sb/shear_splink
 
 rnaseq_sb: $(STAR_INDEX) $(ENSEMBL_GTF)
 	snakemake $(SNAKEMAKE_ARGS) -s pipelines/rnaseq.snake \
@@ -84,6 +84,13 @@ rnaseq_pten: $(STAR_INDEX) $(ENSEMBL_GTF)
 				 processed_dir=data/processed/pten \
 				 log_dir=logs/pten \
 				 qc_dir=qc/pten
+
+nmf:
+	Rscript --vanilla scripts/nmf.R \
+		--counts data/processed/sb/rnaseq/gene_counts.txt \
+		--norm_counts data/processed/sb/rnaseq/gene_counts.log2.txt \
+		--output_dir data/processed/sb/nmf \
+		--cores 20
 
 
 ################################################################################

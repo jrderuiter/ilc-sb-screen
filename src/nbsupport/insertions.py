@@ -1,7 +1,10 @@
 from collections import OrderedDict
 
+import bisect
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpl_patches
+import matplotlib.collections as mpl_coll
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -9,8 +12,9 @@ import seaborn as sns
 import pybiomart
 import toolz
 
-from geneviz.tracks import (GtfTrack, BiomartTrack, RugTrack, FeatureTrack,
-                            plot_tracks)
+from geneviz.tracks import BiomartTrack, FeatureTrack, RugTrack, plot_tracks
+
+from .util.clustermap import color_annotation
 
 
 def annotate_with_clonality(insertions):
@@ -30,16 +34,19 @@ def plot_insertion_stats(insertions, fig_kws=None, suffix='', color=None):
 
     # Insertion depth.
     ins_depth = insertions.groupby('id')['depth_unique'].max()
-    ins_depth.hist(bins=np.arange(0, np.max(ins_depth), 10), ax=axes[0],
-                   grid=False, color=color)
+    ins_depth.hist(
+        bins=np.arange(0, np.max(ins_depth), 10),
+        ax=axes[0],
+        grid=False,
+        color=color)
     axes[0].set_title('Insertion depth' + suffix)
     axes[0].set_xlabel('Insertion depth')
     axes[0].set_ylabel('Number of insertions')
 
     # Maximum depth per sample.
     ins_depth_sample = insertions.groupby('sample')['depth_unique'].max()
-    ins_depth_sample.hist(bins=np.arange(0, 180, 10), ax=axes[1],
-                          grid=False, color=color)
+    ins_depth_sample.hist(
+        bins=np.arange(0, 180, 10), ax=axes[1], grid=False, color=color)
     axes[1].set_title('Maximum insertion depth per sample' + suffix)
     axes[1].set_xlabel('Maximum insertion depth')
     axes[1].set_ylabel('Number of samples')
@@ -54,8 +61,7 @@ def plot_insertion_stats(insertions, fig_kws=None, suffix='', color=None):
     # Number of insertion per sample.
     ins_sample = insertions.groupby('sample')['id'].nunique()
     ins_sample.hist(bins=15, ax=axes[3], grid=False, color=color)
-    axes[3].axvline(ins_sample.median(), linestyle='dashed',
-                    color='red')
+    axes[3].axvline(ins_sample.median(), linestyle='dashed', color='red')
     axes[3].set_title('Number of insertions per sample' + suffix)
     axes[3].set_xlabel('Number of insertions')
     axes[3].set_ylabel('Number of samples')
@@ -71,11 +77,14 @@ def gene_statistics(insertions):
         {
             'n_samples': gene_sample_count(insertions),
             'sense_fraction': gene_sense_fraction(insertions),
-            'sense_fraction_weighted': gene_sense_fraction_weighted(insertions),
+            'sense_fraction_weighted':
+            gene_sense_fraction_weighted(insertions),
             'mean_clonality': gene_clonality(insertions)
         },
-        columns=['n_samples', 'mean_clonality', 'sense_fraction',
-                 'sense_fraction_weighted'])
+        columns=[
+            'n_samples', 'mean_clonality', 'sense_fraction',
+            'sense_fraction_weighted'
+        ])
 
 
 def gene_sample_count(insertions, name='n_samples'):
@@ -285,8 +294,10 @@ def _highlight_bars(g, values, color):
 
 
 def _draw_legend(color_map, ax, **kwargs):
-    patches = [mpl_patches.Patch(
-        color=color, label=label) for label, color in color_map.items()]
+    patches = [
+        mpl_patches.Patch(
+            color=color, label=label) for label, color in color_map.items()
+    ]
     legend = ax.legend(handles=patches, **kwargs)
     return legend
 
@@ -296,7 +307,8 @@ def plot_gene_clonality(insertions,
                         label_min_freq=0,
                         label_extra=None,
                         label_offsets=None,
-                        label_kws=None):
+                        label_kws=None,
+                        **kwargs):
     if ax is None:
         _, ax = plt.subplots()
 
@@ -304,15 +316,14 @@ def plot_gene_clonality(insertions,
     data = gene_statistics(insertions).reset_index()
 
     # Draw plot.
-    sns.regplot(
-        data=data, x='n_samples', y='mean_clonality', ax=ax, fit_reg=False,
-        scatter_kws={'alpha': 1})
+    ax.plot(data['n_samples'], data['mean_clonality'], '.', **kwargs)
 
     ax.set_xlabel('Number of samples')
     ax.set_ylabel('Mean clonality')
     ax.set_title('Candidate frequency vs. clonality')
 
     ax.set_xlim(0, None)
+    ax.set_ylim(0, 1)
     sns.despine(ax=ax)
 
     # Draw labels.
@@ -412,128 +423,179 @@ def plot_orientation_bias(insertions,
     return fig
 
 
-DEFAULT_GENE_KWS = {
-    'collapse': 'transcript',
-    'height': 0.3,
-    'plot_kws': {'lw': 0.5},
-    'arrow_size': 70,
-    'arrow_spacing': 40,
-    'stack_kws': {'spacing': 0.1}
-}
+def plot_insertion_track(insertions,
+                         region,
+                         gene=None,
+                         transcript_id=None,
+                         ins_ratio=1 / 25,
+                         linewidth=0.5,
+                         **kwargs):
+    ori_order = ['sense', 'antisense']
+    ori_palette = [sns.color_palette()[0], sns.color_palette()[2]]
 
-DEFAULT_INS_KWS = dict(
-    hue='gene_orientation',
-    palette={
-        'sense': sns.color_palette()[0],
-        'antisense': sns.color_palette()[2]
-    },
-    height=0.2,
-    plot_kws={'lw': 0.5},
-    stack_kws=dict(spacing=0.01))
+    width = (region[2] - region[1]) * ins_ratio
 
-DEFAULT_RUG_KWS = dict(
-    hue='gene_orientation',
-    palette={'sense': sns.color_palette()[0],
-             'antisense': sns.color_palette()[2]},
-    height=0.25)
+    ins_track = FeatureTrack.from_position(
+        data=insertions,
+        width=width,
+        height=0.25,
+        hue='gene_orientation',
+        hue_order=ori_order,
+        palette=ori_palette,
+        patch_kws={'edgecolor': 'black',
+                   'linewidth': linewidth})
 
+    rug_track = RugTrack(
+        data=insertions,
+        height=0.25,
+        hue='gene_orientation',
+        hue_order=ori_order,
+        palette=ori_palette)
 
-def plot_insertion_track(insertions, gene_name, track_kws=None, **kwargs):
-    """Draws insertions above a gene track from Biomart."""
+    if gene is not None:
+        filter = 'gene_name == {!r}'.format(gene)
+    elif transcript_id is not None:
+        filter = 'transcript_id == {!r}'.format(transcript_id)
+    else:
+        filter = None
 
-    track_kws = track_kws or {}
-
-    # Get gene position.
-    dataset = pybiomart.Dataset(
-        name='mmusculus_gene_ensembl', host='http://www.ensembl.org')
-
-    genes = dataset.query(
-        ['external_gene_name', 'chromosome_name', 'start_position',
-         'end_position', 'strand'],
-        use_attr_names=True)
-
-    genes = genes.rename(columns={
-        'start_position': 'start',
-        'end_position': 'end',
-        'chromosome_name': 'contig'
-    })
-
-    gene = genes.set_index('external_gene_name').ix[gene_name]
-
-    # Setup gene track.
-    gene_kws = toolz.merge(DEFAULT_GENE_KWS, track_kws.get('gene', {}))
     gene_track = BiomartTrack(
         dataset='mmusculus_gene_ensembl',
-        filter='gene_name == {!r}'.format(gene.name),
-        **gene_kws)
+        height=0.4,
+        collapse='transcript',
+        filter=filter,
+        gene_id='gene_name',
+        patch_kws={'linewidth': linewidth},
+        line_kws={'lw': 1},
+        label_kws={'fontstyle': 'italic'})
 
-    # Draw insertions together with this gene track.
-    return _plot_insertions(
-        insertions, gene_track, gene, track_kws=track_kws, **kwargs)
-
-
-def _plot_insertions(insertions,
-                     gene_track,
-                     gene,
-                     track_kws=None,
-                     ins_size=1 / 120,
-                     **kwargs):
-    """Shared function for drawing non-gene tracks."""
-
-    track_kws = track_kws or {}
-
-    rug_kws = toolz.merge(DEFAULT_RUG_KWS, track_kws.get('rug', {}))
-    rug_track = RugTrack(
-        data=insertions.rename(columns={'chromosome': 'seqname'}), **rug_kws)
-
-    # Determine insertions width.
-    padding = kwargs.get('padding', (0, 0))
-    insertion_width = (abs(gene.end - gene.start) + sum(padding)) * ins_size
-
-    # Build insertion track.
-    ins_data = _preprocess_insertions(insertions, insertion_width)
-
-    ins_kws = toolz.merge(DEFAULT_INS_KWS, track_kws.get('insertions', {}))
-    ins_track = FeatureTrack(data=ins_data, **ins_kws)
-
-    reverse = gene.strand != 1
-
-    return plot_tracks(
+    fig = plot_tracks(
         [ins_track, rug_track, gene_track],
-        seqname=gene.contig,
-        start=gene.start,
-        end=gene.end,
+        region=region,
         despine=True,
-        tick_top=False,
-        reverse=reverse,
         **kwargs)
 
+    fig.axes[0].set_title('Insertions')
+    fig.axes[-1].set_xlabel('Chromosome {}'.format(region[0]))
 
-# def plot_insertion_track_gtf(insertions,
-#                              gtf_path,
-#                              gene_name,
-#                              track_kws=None,
-#                              **kwargs):
-#     """Draws insertions using a GTF file for gene definitions."""
-
-#     track_kws = track_kws or {}
-
-#     # Get gene position.
-#     gtf_file = GtfFile(gtf_path)
-#     gene = gtf_file.get_gene(gene_name, field_name='gene_name')
-#     gene.strand = 1 if gene.strand == '+' else -1
-
-#     # Setup tracks.
-#     gene_kws = toolz.merge(DEFAULT_GENE_KWS, track_kws.get('gene', {}))
-#     gene_track = GtfTrack.from_path(
-#         gtf_path, filters='gene_name == {!r}'.format(gene_name), **gene_kws)
-
-#     return _plot_insertions(
-#         insertions, gene_track, gene, track_kws=track_kws, **kwargs)
+    return fig
 
 
-def _preprocess_insertions(insertions, insertion_width):
-    return (insertions.assign(
-        start=lambda df: df['position'] - insertion_width,
-        end=lambda df: df['position'] + insertion_width)
-            .rename(columns={'chromosome': 'seqname'}))
+def plot_exon_expression(coverage,
+                         gene,
+                         z_score=None,
+                         insertions=None,
+                         **kwargs):
+
+    # Subset counts to gene.
+    coverage = coverage.loc[[gene]]
+
+    if insertions is not None:
+        # Summarize insertions.
+        ins_summ = _assign_exon_positions(insertions, coverage, gene=gene)
+        ins_summ = ins_summ.ix[ins_summ['index'] > 0]
+        ins_summ = ins_summ.sort_values(['index', 'clonality'])
+
+        # Subset expression to samples with insertions.
+        coverage = coverage[ins_summ['sample'].unique()]
+
+        # Determine row colors based on clonality.
+        ins_clon = ins_summ.groupby('sample')['clonality'].max()
+        row_colors = color_annotation(
+            ins_clon.to_frame(), colors=['black'], vlims=[(0, 1)])[0]
+        row_colors = row_colors.rename(columns=lambda s: s.capitalize())
+    else:
+        ins_summ = None
+        row_colors = None
+
+    # Plot expression.
+    g = _plot_exon_coverage(
+        coverage, gene, z_score, row_colors=row_colors, **kwargs)
+
+    # Annotate insertion sites.
+    if ins_summ is not None:
+        samples = list(coverage.columns)[::-1]
+
+        segments = []
+        for tup in ins_summ.itertuples():
+            i = samples.index(tup.sample)
+            segments.append([(tup.index, i), (tup.index, i + 1)])
+
+    line_segments = mpl_coll.LineCollection(
+        segments, linewidths=(2, ), linestyles='solid', color='black')
+    g.ax_heatmap.add_collection(line_segments)
+
+    return g
+
+
+def _assign_exon_positions(insertions, coverage, gene):
+    # Get sample, position and clonality fields.
+    ins_gene = insertions.query('gene_name == {!r}'.format(gene))
+    summary = ins_gene[['sample', 'position', 'clonality']].copy()
+
+    # Determine orientation of gene.
+    first = ins_gene.iloc[0]
+    relative_ori = 1 if first.gene_orientation == 'sense' else -1
+    gene_strand = first.strand * relative_ori
+
+    # Determine index position of insertion.
+    coverage = coverage.ix[[gene]]
+    exon_ends = sorted(coverage.index.get_level_values('end'))
+
+    summary['index'] = summary['position'].map(
+        lambda pos: bisect.bisect(exon_ends, pos))
+
+    if gene_strand == -1:
+        summary['index'] = len(exon_ends) - summary['index']
+
+    return summary
+
+
+def _plot_exon_coverage(coverage, transcript_id, z_score=None, **kwargs):
+    # Transform expression, taking z-score if requested.
+    expr = np.log2(coverage.loc[transcript_id] + 1)
+
+    if z_score is not None:
+        expr = _calc_zscore(expr, axis=z_score)
+
+    # Sort by ascending exons.
+    strand = expr.index.get_level_values(3)[0]
+    expr.sort_index(ascending=strand == '+', inplace=True)
+
+    # Draw heatmap.
+    g = sns.clustermap(expr.T, row_cluster=False, col_cluster=False, **kwargs)
+    plt.setp(g.ax_heatmap.get_yticklabels(), rotation=0)
+
+    # Draw xticks.
+    xticks = [1] + list(range(5, len(expr) + 1, 5))
+    g.ax_heatmap.set_xticks(np.array(xticks) - 0.5)
+    g.ax_heatmap.set_xticklabels(map(str, xticks), rotation=0)
+    g.ax_heatmap.set_yticks([])
+
+    # Add axis labels and title.
+    g.ax_heatmap.set_xlabel('Exons')
+    g.ax_heatmap.set_ylabel('Samples')
+    g.ax_heatmap.set_title('{} exon expression'.format(transcript_id))
+
+    # Draw border around heatmap.
+    _add_axis_border(g.ax_heatmap, linewidth=0.5)
+
+    # Draw border around annotation.
+    if kwargs.get('row_colors', None) is not None:
+        _add_axis_border(g.ax_row_colors, linewidth=0.5)
+
+    return g
+
+
+def _calc_zscore(data2d, axis=1):
+    """Standarize the mean and variance of the data axis."""
+    other_axis = 0 if axis == 1 else 1
+    return (data2d.subtract(
+        data2d.mean(axis=other_axis), axis=axis).divide(
+            data2d.std(axis=other_axis), axis=axis))
+
+
+def _add_axis_border(ax, linewidth=1):
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_linewidth(linewidth)
