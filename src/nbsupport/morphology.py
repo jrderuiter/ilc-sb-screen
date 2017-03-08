@@ -1,7 +1,10 @@
 from matplotlib.colors import ListedColormap
 from matplotlib import pyplot as plt
+import numpy as np
 import pandas as pd
+from scipy.stats import fisher_exact
 import seaborn as sns
+from statsmodels.sandbox.stats.multicomp import multipletests
 
 from .util.clustermap import sort_matrix
 
@@ -96,3 +99,85 @@ def plot_metastases(metastases, ax=None, **kwargs):
     ][::-1])
 
     return ax
+
+
+def test_strain_bias(data,
+                     value,
+                     sample='sample',
+                     strain='t2onc_type',
+                     samples=None,
+                     incl_neg=True):
+    """Tests if a given property is biased towards a specific mouse strain.
+
+    Test is performed using a Fishers Exact test, corrected for multiple
+    testing using Benjamini-Hochberg multiple testing correction.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        DataFrame containing (among others) the value to be tested,
+        together with sample names and the sample strain.
+    value : str
+        Name of the value column, the (categorical) values of which
+        will be tested for association with the strain.
+    sample : str
+        Name of the column containing sample names.
+    strain : str
+        Name of the column containing the strain names.
+    samples : pd.DataFrame
+        Optional dataframe containing the sample overview. If given,
+        this frame is used to calculate the total number of samples
+        per strain instead of the 'data' dataframe. This is useful in
+        cases where data does not necessarily contain all samples.
+    incl_neg : bool
+        Whether to return the negative counts (number of samples without
+        the corresponding value) in the result DataFrame.
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe containing the test results, with one row for
+        each distinct value in the value column.
+
+    """
+    assert data[strain].nunique() == 2
+
+    # Build contingency table.
+    if samples is None:
+        strain_counts = data.groupby(strain)[sample].nunique()
+    else:
+        strain_counts = samples.groupby(strain)[sample].nunique()
+
+    with_counts = (data.groupby([strain, value])[sample].nunique()
+                   .reset_index(name='count').pipe(
+                       pd.pivot_table,
+                       index=value,
+                       columns=strain,
+                       values='count').fillna(0.0))
+
+    without_counts = strain_counts - with_counts
+
+    contingency_table = pd.concat(
+        [
+            with_counts.rename(columns=lambda c: 'pos_' + str(c)),
+            without_counts.rename(columns=lambda c: 'neg_' + str(c))
+        ],
+        axis=1).astype(int)
+
+    # Calculate p-values.
+    result = contingency_table.copy()
+    result.columns.name = None
+
+    result['p_value'] = [
+        fisher_exact(np.reshape(tup[1:], [2, 2]))[1]
+        for tup in result.itertuples()
+    ]
+
+    # Calculate q-values.
+    result['q_value'] = multipletests(result['p_value'], method='fdr_bh')[1]
+
+    if not incl_neg:
+        result = result.drop(
+            [c for c in result.columns if c.startswith('neg')], axis=1)
+
+    return result

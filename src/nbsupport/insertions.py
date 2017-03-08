@@ -257,13 +257,17 @@ def _annotate_with_counts(g, col_total, **kwargs):
 
     for clust, ax in zip(g.col_names, g.axes.flatten()):
         total = col_total.ix[clust]
-        for p in ax.patches:
-            fraction = p.get_width()
+        for patch in ax.patches:
+            fraction = patch.get_width()
+
+            if np.isnan(fraction):
+                fraction = 0.0
+
             count = int(round(fraction * total))
 
             ax.text(
                 x=fraction + 0.02,
-                y=(p.get_y() + (p.get_height() / 2)),
+                y=(patch.get_y() + (patch.get_height() / 2)),
                 s='{}'.format(count),
                 va='center',
                 **kwargs)
