@@ -3,7 +3,7 @@ pyim_align:
     transposon: data/external/transposon/sb.transposon.fa
     linker: data/external/transposon/sb.linker.fa
     contaminants: data/external/transposon/sb.contaminants.fa
-    index: data/interim/references/Mus_musculus.GRCm38.dna.primary_assembly
+    index: data/interim/references/bowtie/Mus_musculus.GRCm38.dna.primary_assembly
     barcodes: data/external/transposon/sb.barcodes.fa
     options:
         - --merge_distance 5

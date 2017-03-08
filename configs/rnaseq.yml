@@ -6,7 +6,7 @@ cutadapt:
     - --minimum-length 20
 
 star_align:
-  index_path: data/interim/star/Mus_musculus.GRCm38.dna.primary_assembly.51bp
+  index_path: data/interim/references/star/Mus_musculus.GRCm38.dna.primary_assembly.51bp
   gtf_path: data/external/ensembl/Mus_musculus.GRCm38.76.gtf
   options:
   threads: 5
