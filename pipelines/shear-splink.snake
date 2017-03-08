@@ -8,10 +8,16 @@ import pandas as pd
 # Globals                                                                      #
 ################################################################################
 
+# Pipeline flags.
+all_samples = config.get('all_samples', 'False') == 'True'
+per_strain = config.get('per_strain', 'True') == 'True'
+
 samples = (pd.read_csv(config['samples'], sep='\t',
                        dtype={'t2onc_type': str})
-             .query('include_shearsplink == True')
              .set_index('sample', drop=False))
+
+if not all_samples:
+    samples = samples.query('include_shearsplink == True')
 
 # Top-level data directories.
 raw_dir = config['raw_dir']
@@ -34,8 +40,11 @@ def get_samples():
     return set(samples['sample'])
 
 
-def get_strains():
-    return set(samples['t2onc_type'])
+def get_strains(per_strain=False):
+    if per_strain:
+        return set(samples['t2onc_type']) | {'all'}
+    else:
+        return {'all'}
 
 
 def get_strain_samples(wildcards):
@@ -57,9 +66,9 @@ def format_options(options):
 rule all:
     input:
         expand(path.join(merged_dir, '{strain}', 'insertions.cis.rbm.txt'),
-               strain=get_strains() | {'all'}),
+               strain=get_strains(per_strain)),
         expand(path.join(merged_dir, '{strain}', 'insertions.rbm.txt'),
-               strain=get_strains() | {'all'})
+               strain=get_strains(per_strain))
 
 
 rule pyim_align:

@@ -15,7 +15,7 @@ ENSEMBL_GTF_URL = ftp://ftp.ensembl.org/pub/release-76/gtf/mus_musculus/Mus_musc
 
 BOWTIE_INDEX = data/interim/references/bowtie/Mus_musculus.GRCm38.dna.primary_assembly.1.bt2
 TOPHAT_INDEX = data/interim/references/tophat/Mus_musculus.GRCm38.76.t2onc.tophat2.1.bt2
-STAR_INDEX = data/interim/star/Mus_musculus.GRCm38.dna.primary_assembly.51bp
+STAR_INDEX = data/interim/references/star/Mus_musculus.GRCm38.dna.primary_assembly.51bp
 
 
 ################################################################################
@@ -53,10 +53,21 @@ shear_splink: $(BOWTIE_INDEX) $(ENSEMBL_GTF)
 	snakemake $(SNAKEMAKE_ARGS) -s pipelines/shear-splink.snake \
 		--configfile ./configs/shear-splink.yml \
 		--config samples=data/raw/sb/samples.txt \
-				 raw_dir=data/raw \
+				 raw_dir=data/raw/sb \
 		         interim_dir=data/interim/sb/shear_splink \
 				 processed_dir=data/processed/sb/shear_splink \
 				 log_dir=logs/sb/shear_splink
+
+shear_splink_full: $(BOWTIE_INDEX) $(ENSEMBL_GTF)
+	snakemake $(SNAKEMAKE_ARGS) -s pipelines/shear-splink.snake \
+		--configfile ./configs/shear-splink.yml \
+		--config samples=data/raw/sb/samples.txt \
+				 raw_dir=data/raw/sb \
+		         interim_dir=data/interim/sb/shear_splink_full \
+				 processed_dir=data/processed/sb/shear_splink_full \
+				 log_dir=logs/sb/shear_splink_full \
+				 all_samples=True \
+				 per_strain=False
 
 rnaseq_sb: $(STAR_INDEX) $(ENSEMBL_GTF)
 	snakemake $(SNAKEMAKE_ARGS) -s pipelines/rnaseq.snake \
