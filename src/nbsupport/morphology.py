@@ -14,10 +14,31 @@ MORPHOLOGY_COLORS = ['#66c2a5', '#fa8d62', '#e68ac3']
 METASTASIS_COLOR = '#8d9fca'
 
 
-def parse_morphology(samples):
-    """Parses morphology labels into predefined categories."""
+def parse_morphology(samples, pathology='pathology_type'):
+    """Parses pathology labels into predefined morphologies.
 
-    pathology = samples['pathology_type'].str.lower()
+    Parses the pathology column of the sample overview into a 2D matrix,
+    indicating the membership of each sample to three predefined morphologies:
+    'ILC', 'Spindle cell' and 'Squamous'. Note that samples can have multiple
+    morphologies.
+
+    Parameters
+    ----------
+    samples : pd.DataFrame
+        Sample overview. Is expected to contain a 'sample' column and the
+        pathology column (which defaults to 'pathology_type').
+    pathology : str
+        Name of the column containing sample pathology.
+
+    Returns
+    -------
+    pd.DataFrame
+        Boolean matrix indicating the membership of each sample to each
+        of the three morphologies.
+
+    """
+
+    pathology = samples[pathology].str.lower()
 
     morphology = pd.DataFrame(
         {
@@ -33,8 +54,32 @@ def parse_morphology(samples):
     return sort_matrix(morphology, sort_columns=False)
 
 
-def plot_morphology(morphology, sample_metastases=None, ax=None):
-    """Plots morphology labels as 2D matrix."""
+def plot_morphology(morphology, sample_metastases=None, ax=None, **kwargs):
+    """Plots morphology matrix as 2D heatmap.
+
+    Plots a morphology matrix (typically obtained from the parse_morphology
+    function) as a 2D heatmap. Matrix is expected to correspond with the
+    three categories returned by parse_morphology (ILC, Spindle cell
+    and Squamous).
+
+    Parameters
+    ----------
+    morphology : pd.DataFrame
+        Boolean matrix of samples-by-morphologies.
+    sample_metastases : pd.DataFrame
+        Optional dataframe (single column) indicating which samples have
+        a metastasis. Used to draw metastases as an extra row in the heatmap.
+    ax : matplotlib.Axis
+        Axis to use for plotting.
+    **kwargs
+        Any kwargs are passed to seaborns heatmap function.
+
+    Returns
+    -------
+    matplotlib.Axis
+        Axis that was used for plotting.
+
+    """
 
     if ax is None:
         _, ax = plt.subplots()
@@ -60,7 +105,14 @@ def plot_morphology(morphology, sample_metastases=None, ax=None):
 
     # Draw heatmap.
     cmap = ListedColormap(['#f6f6f6'] + palette)
-    sns.heatmap(num_matrix.T, ax=ax, cbar=False, cmap=cmap)
+    sns.heatmap(
+        num_matrix.T,
+        ax=ax,
+        cbar=False,
+        cmap=cmap,
+        vmin=0,
+        vmax=len(palette),
+        **kwargs)
 
     ax.set_xticks([])
     ax.set_xlim(0, num_matrix.shape[0])
@@ -70,13 +122,33 @@ def plot_morphology(morphology, sample_metastases=None, ax=None):
 
     # Add counts to labels.
     ax.set_yticklabels(
-        ['{} ({})'.format(k, v) for k, v in morphology.sum().items()][::-1])
+        ['{} ({})'.format(k, v) for k, v in morphology.sum().items()][::-1],
+        rotation=0)
 
     return ax
 
 
 def plot_metastases(metastases, ax=None, **kwargs):
-    """Plots metastasis sites as 2d boolean matrix."""
+    """Plots matrix of metastasis sites as 2D heatmap.
+
+    Plots a matrix of samples-by-metastasis-sites as a 2D heatmap,
+    indicating which samples have metastases to which sites.
+
+    Parameters
+    ----------
+    metastases : pd.DataFrame
+        Boolean 2D matrix of samples-by-met-sites.
+    ax : matplotlib.Axis
+        Axis to use for plotting.
+    **kwargs
+        Any kwargs are passed to seaborns heatmap function.
+
+    Returns
+    -------
+    ax : matplotlib.Axis
+        Axis that was used for plotting.
+
+    """
 
     if ax is None:
         _, ax = plt.subplots()
