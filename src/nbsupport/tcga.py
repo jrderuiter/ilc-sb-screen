@@ -1,3 +1,5 @@
+import collections
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -6,7 +8,19 @@ from scipy import stats
 
 
 def parse_barcode(barcode):
-    """Parse a tcga barcode into its constituents."""
+    """Parse a tcga barcode into its constituents.
+
+    Parameters
+    ----------
+    barcode : str
+        TCGA barcode to parse.
+
+    Returns
+    -------
+    dict[str, str]
+        Dictionary containing the parsed barcode elements.
+
+    """
 
     # Define fields and their locations in the barcode.
     fields = {
@@ -47,7 +61,24 @@ def _extract_field(split, indices):
         return None
 
 
-def extract_sample(barcode):
+def extract_sample_barcode(barcode):
+    """Extracts the sample barcode from a TCGA barcode.
+
+    Extracts the sample barcode from TCGA barcodes, which is comprised
+    of the first four elements of the barcode.
+
+    Parameters
+    ----------
+    barcode : str
+        TCGA barcode to parse.
+
+    Returns
+    -------
+    str
+        Parsed sample barcode.
+
+    """
+
     parsed = parse_barcode(barcode)
     return '-'.join([
         parsed['project'], parsed['tss'], parsed['participant'],
@@ -55,19 +86,81 @@ def extract_sample(barcode):
     ])
 
 
-def extract_particpant(barcode):
+def extract_participant_barcode(barcode):
+    """Extracts the participant barcode from a TCGA barcode.
+
+    Extracts the sample participant from TCGA barcodes, which is comprised
+    of the first three elements of the barcode.
+
+    Parameters
+    ----------
+    barcode : str
+        TCGA barcode to parse.
+
+    Returns
+    -------
+    str
+        Parsed participant barcode.
+
+    """
     parsed = parse_barcode(barcode)
     return '-'.join([parsed['project'], parsed['tss'], parsed['participant']])
 
 
-def plot_expr_vs_cn(expr,
-                    cnv,
-                    gene_name,
-                    show_points=True,
-                    ax=None,
-                    boxplot_kws=None,
-                    strip_kws=None,
-                    label_kws=None):
+def select_tumor_samples(data):
+    """Selects columns corresponding to TCGA tumor samples.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Dataframe containing TCGA data, with samples along the columns.
+        Samples should be named using TCGA barcodes.
+
+    Returns
+    -------
+    pd.DataFrame
+        Subsetted dataframe, containing only tumor samples.
+
+    """
+
+    def _is_tumor(barcode):
+        return parse_barcode(barcode)['sample'].startswith('0')
+
+    return data.get([c for c in data.columns if _is_tumor(c)])
+
+
+def drop_duplicate_columns(data):
+    """Drops duplicate columns from a dataframe.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Dataframe to filter.
+
+    Returns
+    -------
+    pd.DataFrame
+        Subsetted dataframe, without any duplicate column names.
+
+    """
+
+    counts = collections.Counter(data.columns)
+    duplicates = [k for k, v in counts.items() if v > 1]
+    return data.drop(duplicates, axis=1)
+
+
+def plot_cnv_expr_corr(expr,
+                       cnv,
+                       gene_name,
+                       show_points=True,
+                       ax=None,
+                       boxplot_kws=None,
+                       strip_kws=None,
+                       label_kws=None):
+    """Plots correlation between CNV calls and gene expression values.
+
+    """
+
     merged = pd.merge(
         cnv.ix[gene_name].to_frame('copy_number'),
         expr.ix[gene_name].to_frame('expr'),

@@ -18,6 +18,24 @@ from .util.clustermap import color_annotation
 
 
 def annotate_with_clonality(insertions):
+    """Annotates an insertion dataframe with the clonality of insertions.
+
+    The clonality of each insertion is calculated by dividing the support
+    of the insertion by the support score of the strongest insertion in the
+    same tumor.
+
+    Parameters
+    ----------
+    insertions : pd.DataFrame
+        Insertion dataframe.
+
+    Returns
+    -------
+    pd.DataFrame
+        Annotated insertion dataframe, containing an extra 'clonality' column.
+
+    """
+
     grps = []
     for _, grp in insertions.groupby('sample'):
         grp = grp.copy()
@@ -28,7 +46,32 @@ def annotate_with_clonality(insertions):
 
 
 def plot_insertion_stats(insertions, fig_kws=None, suffix='', color=None):
-    # Plot some more advanced statistics of dataset.
+    """Plots an overview of various statistics for the given insertions.
+
+    Creates the following for plots for the given insertions:
+        - Histogram of insertion depth
+        - Histogram of insertion clonality
+        - Histogram of the maximum insertion depth in each sample
+        - Histogram of the number of insertions in each sample
+
+    Parameters
+    ----------
+    insertions : pd.DataFrame
+        Dataframe of insertions.
+    fig_kws : dict[str, Any]
+        Keyword arguments
+    suffix : str
+        Optional suffix to add to the subplot titles.
+    color
+        A valid matplotlib color, used to color the histograms.
+
+    Returns
+    -------
+    Tuple[matplotlib.Figure, matplotlib.Axes]
+        Returns a tuple containing the drawn figure and axes.
+
+    """
+
     fig, axes = plt.subplots(ncols=2, nrows=2, **(fig_kws or {}))
     axes = axes.flatten()
 
@@ -46,17 +89,17 @@ def plot_insertion_stats(insertions, fig_kws=None, suffix='', color=None):
     # Maximum depth per sample.
     ins_depth_sample = insertions.groupby('sample')['depth_unique'].max()
     ins_depth_sample.hist(
-        bins=np.arange(0, 180, 10), ax=axes[1], grid=False, color=color)
-    axes[1].set_title('Maximum insertion depth per sample' + suffix)
-    axes[1].set_xlabel('Maximum insertion depth')
-    axes[1].set_ylabel('Number of samples')
+        bins=np.arange(0, 180, 10), ax=axes[2], grid=False, color=color)
+    axes[2].set_title('Maximum insertion depth per sample' + suffix)
+    axes[2].set_xlabel('Maximum insertion depth')
+    axes[2].set_ylabel('Number of samples')
 
     # Insertion clonality
     ins_clon = insertions.groupby('id')['clonality'].max()
-    ins_clon.hist(bins=20, ax=axes[2], grid=False, color=color)
-    axes[2].set_title('Insertion clonality' + suffix)
-    axes[2].set_xlabel('Insertion clonality')
-    axes[2].set_ylabel('Number of insertions')
+    ins_clon.hist(bins=20, ax=axes[1], grid=False, color=color)
+    axes[1].set_title('Insertion clonality' + suffix)
+    axes[1].set_xlabel('Insertion clonality')
+    axes[1].set_ylabel('Number of insertions')
 
     # Number of insertion per sample.
     ins_sample = insertions.groupby('sample')['id'].nunique()
@@ -73,6 +116,28 @@ def plot_insertion_stats(insertions, fig_kws=None, suffix='', color=None):
 
 
 def gene_statistics(insertions):
+    """Calculates some basic statistics for genes in the given insertion set.
+
+    Includes the following statistics:
+        - n_samples: The number of samples in which a gene has an insertion
+        - sense_fraction: The fraction of insertions that are integrated in
+            a sense orientation with respect to their target gene.
+        - sense_fraction_weighted: Same as sense_fraction, but insertions
+            are weighted by their clonality when calculating the fraction.
+        - mean_clonality: Mean clonality of insertions in the gene.
+
+    Parameters
+    ----------
+    insertions : pd.DataFrame
+        Insertion dataframe.
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe containing four columns with the various statistics.
+
+    """
+
     return pd.DataFrame(
         {
             'n_samples': gene_sample_count(insertions),
@@ -88,12 +153,40 @@ def gene_statistics(insertions):
 
 
 def gene_sample_count(insertions, name='n_samples'):
+    """Calculates the number of samples with insertions for each gene.
+
+    Parameters
+    ----------
+    insertions : pd.DataFrame
+        Insertion dataframe.
+    name : str
+        Name to use for the returned series.
+
+    Returns
+    -------
+    pd.Series
+        Gene sample counts for the given insertion set.
+    """
+
     count = insertions.groupby('gene_name')['sample'].nunique()
     count.name = name
     return count
 
 
 def gene_sense_fraction(insertions):
+    """Calculates the fraction of sense insertions per gene.
+
+    Parameters
+    ----------
+    insertions : pd.DataFrame
+        Insertion dataframe.
+
+    Returns
+    -------
+    pd.Series
+        Gene sense fractions for the given insertion set.
+    """
+
     def _sense_frac(x):
         is_sense = x['gene_orientation'] == 'sense'
         return np.sum(is_sense) / len(x)
@@ -102,6 +195,19 @@ def gene_sense_fraction(insertions):
 
 
 def gene_sense_fraction_weighted(insertions):
+    """Calculates the weighted fraction of sense insertions per gene.
+
+    Parameters
+    ----------
+    insertions : pd.DataFrame
+        Insertion dataframe.
+
+    Returns
+    -------
+    pd.Series
+        Gene weighted sense fractions for the given insertion set.
+    """
+
     def _sense_frac_weighted(x):
         is_sense = x['gene_orientation'] == 'sense'
         return np.sum(is_sense * x['clonality']) / np.sum(x['clonality'])
@@ -110,11 +216,39 @@ def gene_sense_fraction_weighted(insertions):
 
 
 def gene_clonality(insertions):
+    """Calculates the average clonality of insertions per gene.
+
+    Parameters
+    ----------
+    insertions : pd.DataFrame
+        Insertion dataframe.
+
+    Returns
+    -------
+    pd.Series
+        Gene clonalities for the given insertion set.
+    """
+
     return clonality_matrix(insertions).mean(axis=1)
 
 
 def clonality_matrix(insertions, value='clonality', fill_value=None):
-    """Summarizes insertions in gene/sample matrix."""
+    """Summarizes insertion clonality values in genes-by-samples matrix.
+
+    Parameters
+    ----------
+    insertions : pd.DataFrame
+        Insertion dataframe.
+    value : str
+        Name of the column to use for clonality values.
+    fill_value : float
+        Value to use for missing entries.
+
+    Returns
+    -------
+    pd.DataFrame
+        Matrix of genes-by-samples containing clonality values.
+    """
 
     # Summarize gene clonality per sample.
     gene_clon = pd.pivot_table(
@@ -129,7 +263,19 @@ def clonality_matrix(insertions, value='clonality', fill_value=None):
 
 
 def sort_matrix(mat):
-    """Sorts a 2d matrix, first by its rows and then by its columns."""
+    """Sorts a 2D matrix, first by its rows and then by its columns.
+
+    Parameters
+    ----------
+    mat : pd.DataFrame
+        Matrix to sort.
+
+    Returns
+    -------
+    pd.DataFrame
+        Sorted matrix.
+
+    """
 
     freqs = (mat > 0).sum(axis=1)
     order = list(freqs.sort_values(ascending=False).index)
@@ -145,7 +291,27 @@ def plot_insertion_matrix(insertions,
                           value='clonality',
                           ax=None,
                           **kwargs):
-    """Plots a 2d sample/by gene overview of an insertion matrix."""
+    """Plots a 2D sample-by-gene heatmap of an insertion matrix.
+
+    Parameters
+    ----------
+    insertions : pd.DataFrame
+        Insertion dataframe.
+    genes : List[str]
+        List of genes to plot.
+    value : str
+        Name of column containing values to use in the heatmap.
+    ax : matplotlib.Axis
+        Axis to draw on.
+    kwargs:
+        Any keyword arguments are passed to seaborns heatmap function.
+
+    Returns
+    -------
+    matplotlib.Axis
+        Axis that was drawn on.
+
+    """
 
     if ax is None:
         _, ax = plt.subplots()
@@ -155,7 +321,7 @@ def plot_insertion_matrix(insertions,
 
     # Subset if needed.
     if genes is not None:
-        ins_matrix = ins_matrix.ix[genes]
+        ins_matrix = ins_matrix.loc[genes]
         ins_matrix = ins_matrix.dropna(how='all')
 
     # Sort matrix by columns.
@@ -192,7 +358,35 @@ def plot_subtype_counts(insertions,
                         legend_kws=None,
                         annotate_kws=None,
                         **kwargs):
-    """Draws bar factorplot counting gene occurrences per subtype."""
+    """Draws bar factorplot counting gene occurrences per subtype.
+
+    Parameters
+    ----------
+    insertions : pd.DataFrame
+        Insertion dataframe.
+    subtypes : pd.Series
+        Series containing the subtype assignment. Index should reflect
+        samples in the given insertion set.
+    color : str
+        Color to use for the bars.
+    highlight : Dict[str, List[str]]
+        Dict of subtypes -> genes, indicating which genes should be highlighted
+        per subtype (if any). Highlighted genes are given a different color.
+    highlight_color : str
+        Color to use for the bars of highlighted genes.
+    legend_kws : Dict[str, Any]
+        Dictionary of keyword arguments to pass to ax.legend.
+    annotate_kws : Dict[str, Any]
+        Dictionary of keyword arguments to pass to ax.annotate when
+        labeling gene counts.
+    **kwargs
+        Dictionary of other keyword arguments to pass to seaborn.factorplot.
+
+    Returns
+    -------
+    g : FacetGrid
+        Returns the FacetGrid object with the plot on it for further tweaking.
+    """
 
     legend_kws = toolz.merge(dict(loc='lower right', frameon=True),
                              legend_kws or {}) # yapf: disable
@@ -308,8 +502,7 @@ def _draw_legend(color_map, ax, **kwargs):
 
 def plot_gene_clonality(insertions,
                         ax=None,
-                        label_min_freq=0,
-                        label_extra=None,
+                        label_min_freq=None,
                         label_offsets=None,
                         label_kws=None,
                         **kwargs):
@@ -327,22 +520,21 @@ def plot_gene_clonality(insertions,
     ax.set_title('Candidate frequency vs. clonality')
 
     ax.set_xlim(0, None)
-    ax.set_ylim(0, 1)
+    # ax.set_ylim(0, 1)
     sns.despine(ax=ax)
 
     # Draw labels.
-    label_data = data.ix[data['n_samples'] >= label_min_freq]
-    _draw_labels(label_data, ax=ax, offsets=label_offsets, **(label_kws or {}))
+    if label_min_freq is None:
+        label_data = data
+    else:
+        label_data = data.ix[data['n_samples'] >= label_min_freq]
+        ax.axvline(
+            label_min_freq - 0.5,
+            color='darkgrey',
+            linestyle='dashed',
+            zorder=0)
 
-    # Draw labels for extra genes.
-    if label_extra is not None:
-        label_data_extra = data.ix[data['gene_name'].isin(label_extra)]
-        _draw_labels(
-            label_data_extra,
-            ax=ax,
-            offsets=label_offsets,
-            color='grey',
-            **(label_kws or {}))
+    _draw_labels(label_data, ax=ax, offsets=label_offsets, **(label_kws or {}))
 
     return ax
 
@@ -374,6 +566,35 @@ def _draw_labels(data,
             textcoords='offset points',
             arrowprops=arrowprops,
             **kwargs)
+
+
+def plot_gene_clonality_boxplot(insertions, order=None, ax=None, **kwargs):
+    if ax is None:
+        _, ax = plt.subplots()
+
+    if order is None:
+        # Order genes by their frequency.
+        order = list(gene_sample_count(insertions)
+                     .sort_values(ascending=False).index) # yapf: disable
+
+    # Plot clonality of insertions.
+    sns.boxplot(
+        data=insertions,
+        x='gene_name',
+        y='clonality',
+        ax=ax,
+        color='lightgrey',
+        order=order,
+        **kwargs)
+
+    ax.set_xlabel('Genes')
+    ax.set_ylabel('Clonality')
+    ax.set_ylim(0, 1.02)
+
+    plt.setp(ax.get_xticklabels(), rotation=90, fontstyle='italic')
+    sns.despine(ax=ax)
+
+    return ax
 
 
 def plot_orientation_bias(insertions,

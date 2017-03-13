@@ -5,3 +5,5 @@ __pycache__
 ._.DS_Store
 .vscode
 .snakemake
+.ipynb_checkpoints
+notebooks/*.sqlite
