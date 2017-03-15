@@ -29,5 +29,5 @@ pathway in invasive lobular breast carcinoma. *Under revision.*
 Contact
 -------
 
-Please mention any technical issues here on GitHub. Correspondence concerning
-the paper should be addressed to Jos Jonkers or Lodewyk Wessels.
+Please ask questions about technical issues here on GitHub. Correspondence
+concerning the paper should be addressed to Jos Jonkers or Lodewyk Wessels.

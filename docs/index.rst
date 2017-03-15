@@ -16,6 +16,7 @@ Contents:
    notebooks
    source
    reference
+   contact
 
 
 Indices and tables
