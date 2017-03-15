@@ -14,7 +14,6 @@ ENSEMBL_FASTA_URL = ftp://ftp.ensembl.org/pub/release-76/fasta/mus_musculus/dna/
 ENSEMBL_GTF_URL = ftp://ftp.ensembl.org/pub/release-76/gtf/mus_musculus/Mus_musculus.GRCm38.76.gtf.gz
 
 BOWTIE_INDEX = data/interim/references/bowtie/Mus_musculus.GRCm38.dna.primary_assembly.1.bt2
-TOPHAT_INDEX = data/interim/references/tophat/Mus_musculus.GRCm38.76.t2onc.tophat2.1.bt2
 STAR_INDEX = data/interim/references/star/Mus_musculus.GRCm38.dna.primary_assembly.51bp
 
 
@@ -25,7 +24,7 @@ STAR_INDEX = data/interim/references/star/Mus_musculus.GRCm38.dna.primary_assemb
 all:
 
 env:
-	conda env create -f envs/sb-screen.yml
+	conda env create -f environment.yml
 
 clean:
 	find . -name "*.pyc" -exec rm {} \;
@@ -33,12 +32,12 @@ clean:
 lint:
 	flake8 --exclude=lib/,bin/,docs/conf.py .
 
+docs:
+	(cd docs && make html)
 
 ################################################################################
 # PROJECT RULES                                                                #
 ################################################################################
-
-build_tophat_index: $(TOPHAT_INDEX)
 
 build_bowtie_index: $(BOWTIE_INDEX)
 
@@ -121,14 +120,6 @@ $(ENSEMBL_GTF):
 
 $(BOWTIE_INDEX): $(ENSEMBL_FASTA)
 	bowtie2-build $(ENSEMBL_FASTA) $(basename $(basename $(BOWTIE_INDEX)))
-
-$(TOPHAT_INDEX): $(ENSEMBL_FASTA) $(ENSEMBL_GTF)
-	mkdir -p $(dir $(TOPHAT_INDEX))
-	bowtie2-build $(ENSEMBL_FASTA) $(basename $(basename $(TOPHAT_INDEX)))
-	tophat2 -G $(ENSEMBL_GTF) \
-		--transcriptome-index=$(basename $(basename $(TOPHAT_INDEX))).transcriptome \
-		$(basename $(basename $(TOPHAT_INDEX)))
-	rm -rf ./tophat_out
 
 $(STAR_INDEX): $(ENSEMBL_FASTA) $(ENSEMBL_GTF)
 	mkdir -p $(STAR_INDEX)

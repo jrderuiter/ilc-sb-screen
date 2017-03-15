@@ -69,6 +69,9 @@ dependencies:
     - pybiomart ==0.1
     - git+git://github.com/jrderuiter/genemap.git#egg=genemap
 
+  # Docs
+  - sphinx
+
   # MISC.
   # - pytables ==3.2.3.1  # for hdf5
   # - geneviz ==0.1.0-dev0
