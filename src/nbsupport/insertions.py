@@ -144,10 +144,10 @@ def gene_statistics(insertions):
             'sense_fraction': gene_sense_fraction(insertions),
             'sense_fraction_weighted':
             gene_sense_fraction_weighted(insertions),
-            'mean_clonality': gene_clonality(insertions)
+            'median_clonality': gene_clonality(insertions)
         },
         columns=[
-            'n_samples', 'mean_clonality', 'sense_fraction',
+            'n_samples', 'median_clonality', 'sense_fraction',
             'sense_fraction_weighted'
         ])
 
@@ -215,8 +215,8 @@ def gene_sense_fraction_weighted(insertions):
     return insertions.groupby(['gene_name']).apply(_sense_frac_weighted)
 
 
-def gene_clonality(insertions):
-    """Calculates the average clonality of insertions per gene.
+def gene_clonality(insertions, max_per_gene=True):
+    """Calculates the median clonality of insertions per gene.
 
     Parameters
     ----------
@@ -229,10 +229,18 @@ def gene_clonality(insertions):
         Gene clonalities for the given insertion set.
     """
 
-    return clonality_matrix(insertions).mean(axis=1)
+    if max_per_gene:
+        max_clonalities = (insertions.groupby(['sample', 'gene_name']).max()
+                           .reset_index())
+        return max_clonalities.groupby('gene_name')['clonality'].median()
+    else:
+        return insertions.groupby('gene_name')['clonality'].median()
 
 
-def clonality_matrix(insertions, value='clonality', fill_value=None):
+def clonality_matrix(insertions,
+                     value='clonality',
+                     fill_value=None,
+                     aggfunc='max'):
     """Summarizes insertion clonality values in genes-by-samples matrix.
 
     Parameters
@@ -256,7 +264,7 @@ def clonality_matrix(insertions, value='clonality', fill_value=None):
         index='gene_name',
         columns='sample',
         values=value,
-        aggfunc='max',
+        aggfunc=aggfunc,
         fill_value=fill_value)
 
     return gene_clon
@@ -513,10 +521,10 @@ def plot_gene_clonality(insertions,
     data = gene_statistics(insertions).reset_index()
 
     # Draw plot.
-    ax.plot(data['n_samples'], data['mean_clonality'], '.', **kwargs)
+    ax.plot(data['n_samples'], data['median_clonality'], '.', **kwargs)
 
     ax.set_xlabel('Number of samples')
-    ax.set_ylabel('Mean clonality')
+    ax.set_ylabel('Median clonality')
     ax.set_title('Candidate frequency vs. clonality')
 
     ax.set_xlim(0, None)
@@ -543,7 +551,7 @@ def _draw_labels(data,
                  ax,
                  offsets=None,
                  x='n_samples',
-                 y='mean_clonality',
+                 y='median_clonality',
                  label='gene_name',
                  **kwargs):
 
@@ -568,7 +576,11 @@ def _draw_labels(data,
             **kwargs)
 
 
-def plot_gene_clonality_boxplot(insertions, order=None, ax=None, **kwargs):
+def plot_gene_clonality_boxplot(insertions,
+                                order=None,
+                                ax=None,
+                                max_per_gene=True,
+                                **kwargs):
     if ax is None:
         _, ax = plt.subplots()
 
@@ -576,6 +588,11 @@ def plot_gene_clonality_boxplot(insertions, order=None, ax=None, **kwargs):
         # Order genes by their frequency.
         order = list(gene_sample_count(insertions)
                      .sort_values(ascending=False).index) # yapf: disable
+
+    if max_per_gene:
+        insertions = (insertions.groupby(['sample', 'gene_name'])
+                      ['clonality'].max()
+                      .reset_index()) # yapf: disable
 
     # Plot clonality of insertions.
     sns.boxplot(
