@@ -7,8 +7,13 @@ __pycache__
 .snakemake
 .ipynb_checkpoints
 
-notebooks/*.sqlite
-
+_bak
+_old
+data/interim/*
+data/processed/*
 docs/_build
+logs
+notebooks/*.sqlite
 reports/*
+qc
 tmp
