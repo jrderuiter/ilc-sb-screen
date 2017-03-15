@@ -1,51 +1,33 @@
-sb-screen
-==============================
+ILC SB screen
+=============
 
-Sleeping Beauty insertional mutagenesis screen to identify drivers of Invasive Lobular Carcinoma.
-
-Project Organization
+Introduction
 ------------
 
-    ├── LICENSE
-    ├── Makefile           <- Makefile with commands like `make data` or `make train`
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
-    │
-    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
-    │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
-    │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-    │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   └── make_dataset.py
-    │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
-    │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
-    │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
-    │
-    └── tox.ini            <- tox file with settings for running tox; see tox.testrun.org
+This repository accompanies the paper *"Insertional mutagenesis identifies
+Myh9, Ppp1r12a/b and Trp53bp2 as drivers of a novel oncogenic pathway in
+invasive lobular breast carcinoma"*, which describes the use of a Sleeping
+Beauty mutagenesis screen mice to identify novel drivers of Invasive Lobular
+Carcinoma (ILC), the second most common subtype of human breast cancer.
+
+Here we provide the files and code needed to reproduce the computational
+analyses performed in the paper.
+
+Documentation
+-------------
+
+Documentation is available at
+[https://jrderuiter.github.io/ilc-sb-screen](https://jrderuiter.github.io/ilc-sb-screen).
+
+Reference
+---------
+
+Kas, S.M., de Ruiter, J.R., Schipper, K. et al. Insertional mutagenesis
+identifies Myh9, Ppp1r12a/b and Trp53bp2 as drivers of a novel oncogenic
+pathway in invasive lobular breast carcinoma. *Under revision.*
+
+Contact
+-------
+
+Please mention any technical issues here on GitHub. Correspondence concerning
+the paper should be addressed to Jos Jonkers or Lodewyk Wessels.

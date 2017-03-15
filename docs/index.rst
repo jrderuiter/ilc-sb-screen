@@ -11,9 +11,11 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   introduction
    getting-started
-   commands
-
+   notebooks
+   source
+   reference
 
 
 Indices and tables
