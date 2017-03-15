@@ -12,7 +12,7 @@ from nbsupport.util.seaborn import clustermap
 
 from .util import tidy_expression
 
-SUBTYPE_ORDER = ['ILC-1', 'ILC-2', 'EMT-like', 'Squamous-like']
+SUBTYPE_ORDER = ['ILC-1', 'ILC-2', 'Spindle cell-like', 'Squamous-like']
 SUBTYPE_COLORS = [sns.color_palette()[i] for i in list(range(3)) + [4]]
 
 
