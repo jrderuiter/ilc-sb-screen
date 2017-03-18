@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from matplotlib.colors import ListedColormap
 from matplotlib import pyplot as plt
 import numpy as np
@@ -8,13 +10,18 @@ from statsmodels.sandbox.stats.multicomp import multipletests
 
 from .util.clustermap import sort_matrix
 
-MORPHOLOGY_ORDER = ['ILC', 'Spindle cell', 'Squamous']
-MORPHOLOGY_COLORS = ['#66c2a5', '#fa8d62', '#e68ac3']
+MORPHOLOGY_ORDER = ('ILC', 'Spindle cell', 'Squamous')
+MORPHOLOGY_COLORS = ('#66c2a5', '#fa8d62', '#e68ac3')
+
+MORPHOLOGY_TYPES = OrderedDict(
+    zip(MORPHOLOGY_ORDER, ['ilc', 'spindle cell', 'squamous']))
 
 METASTASIS_COLOR = '#8d9fca'
 
 
-def parse_morphology(samples, pathology='pathology_type'):
+def parse_morphology(samples,
+                     pathology='pathology_type',
+                     morphology_types=None):
     """Parses pathology labels into predefined morphologies.
 
     Parses the pathology column of the sample overview into a 2D matrix,
@@ -38,23 +45,28 @@ def parse_morphology(samples, pathology='pathology_type'):
 
     """
 
-    pathology = samples[pathology].str.lower()
+    if morphology_types is None:
+        morphology_types = MORPHOLOGY_TYPES
 
-    morphology = pd.DataFrame(
-        {
-            'sample': samples['sample'],
-            'ILC': pathology.str.contains('ilc'),
-            'Spindle cell': pathology.str.contains('spindle cell'),
-            'Squamous': pathology.str.contains('squamous')
-        },
-        columns=['sample'] + MORPHOLOGY_ORDER)
+    morphology = pd.DataFrame({'sample': samples['sample']})
+
+    pathology = samples[pathology].str.lower()
+    for label, match_str in morphology_types.items():
+        morphology[label] = pathology.str.contains(match_str)
 
     morphology = morphology.set_index('sample').fillna(False)
 
     return sort_matrix(morphology, sort_columns=False)
 
 
-def plot_morphology(morphology, sample_metastases=None, ax=None, **kwargs):
+def plot_morphology(morphology,
+                    order=MORPHOLOGY_ORDER,
+                    colors=MORPHOLOGY_COLORS,
+                    metastases=None,
+                    metastasis_color=METASTASIS_COLOR,
+                    ax=None,
+                    bg_color='#f6f6f6',
+                    **kwargs):
     """Plots morphology matrix as 2D heatmap.
 
     Plots a morphology matrix (typically obtained from the parse_morphology
@@ -66,11 +78,19 @@ def plot_morphology(morphology, sample_metastases=None, ax=None, **kwargs):
     ----------
     morphology : pd.DataFrame
         Boolean matrix of samples-by-morphologies.
-    sample_metastases : pd.DataFrame
+    order :
+
+    colors :
+
+    metastases : pd.DataFrame
         Optional dataframe (single column) indicating which samples have
         a metastasis. Used to draw metastases as an extra row in the heatmap.
+    metastasis_color :
+
     ax : matplotlib.Axis
         Axis to use for plotting.
+    bg_color : str
+
     **kwargs
         Any kwargs are passed to seaborns heatmap function.
 
@@ -84,15 +104,14 @@ def plot_morphology(morphology, sample_metastases=None, ax=None, **kwargs):
     if ax is None:
         _, ax = plt.subplots()
 
+    # Add metastasis data if given.
+    if metastases is not None:
+        morphology = pd.concat([morphology, metastases], axis=1)
+        order = list(order) + [metastases.columns[0]]
+        colors = list(colors) + [metastasis_color]
+
     # Sort by rows/columns.
-    morphology = morphology[MORPHOLOGY_ORDER]
-
-    if sample_metastases is not None:
-        morphology = pd.concat([morphology, sample_metastases], axis=1)
-        palette = MORPHOLOGY_COLORS + [METASTASIS_COLOR]
-    else:
-        palette = MORPHOLOGY_COLORS
-
+    morphology = morphology[list(order)]
     morphology = sort_matrix(morphology, sort_columns=False)
 
     # Convert to numeric matrix (for heatmap).
@@ -104,14 +123,14 @@ def plot_morphology(morphology, sample_metastases=None, ax=None, **kwargs):
         columns=morphology.columns)
 
     # Draw heatmap.
-    cmap = ListedColormap(['#f6f6f6'] + palette)
+    cmap = ListedColormap([bg_color] + list(colors))
     sns.heatmap(
         num_matrix.T,
         ax=ax,
         cbar=False,
         cmap=cmap,
         vmin=0,
-        vmax=len(palette),
+        vmax=len(colors),
         **kwargs)
 
     ax.set_xticks([])
