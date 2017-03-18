@@ -1,14 +1,20 @@
+# Python files.
 *.pyc
 __pycache__
 
+# Mac files.
 .DS_Store
-._.DS_Store
+._*
+
+# Local files.
 .vscode
 .snakemake
 .ipynb_checkpoints
 
+# Project dirs.
 _bak
 _old
+data/external/*
 data/interim/*
 data/processed/*
 docs/_build

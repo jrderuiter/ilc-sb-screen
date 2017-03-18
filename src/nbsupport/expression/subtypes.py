@@ -18,7 +18,7 @@ SUBTYPE_COLORS = [sns.color_palette()[i] for i in list(range(3)) + [4]]
 
 def plot_nmf_subtypes(nmf_coef, morphology, **kwargs):
     morphology_colors = color_annotation(
-        morphology[MORPHOLOGY_ORDER], colors=MORPHOLOGY_COLORS)[0]
+        morphology[list(MORPHOLOGY_ORDER)], colors=MORPHOLOGY_COLORS)[0]
 
     g = plot_nmf_coefficientmap(
         nmf_coef,

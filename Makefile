@@ -16,6 +16,13 @@ ENSEMBL_GTF_URL = ftp://ftp.ensembl.org/pub/release-76/gtf/mus_musculus/Mus_musc
 BOWTIE_INDEX = data/interim/references/bowtie/Mus_musculus.GRCm38.dna.primary_assembly.1.bt2
 STAR_INDEX = data/interim/references/star/Mus_musculus.GRCm38.dna.primary_assembly.51bp
 
+FIREBROWSE_RNASEQ = data/external/tcga-brca-firebrowse/rnaseqv2.normalized.txt
+FIREBROWSE_CNV = data/external/tcga-brca-firebrowse/gistic.all_thresholded.by_genes.txt
+
+TGCA_2012_PAM50 = data/external/tcga-brca-2012/BRCA.547.PAM50.SigClust.Subtypes.txt
+
+TCGA_ILC_RNASEQ = data/external/tcga-ilc-2015/ILC_rnaseqv2_RSEM_genes_normalized_data_F2.txt
+TCGA_ILC_SUBTYPES = data/external/tcga-ilc-2015/mmc9.xlsx
 
 ################################################################################
 # COMMANDS                                                                     #
@@ -102,6 +109,12 @@ nmf:
 		--output_dir data/processed/sb/nmf \
 		--cores 20
 
+tcga_brca_firebrowse: $(FIREBROWSE_RNASEQ) $(FIREBROWSE_CNV)
+
+tcga_brca_2012: $(TGCA_2012_PAM50)
+
+tcga_ilc_2015: $(TCGA_ILC_SUBTYPES) $(TCGA_ILC_RNASEQ)
+
 
 ################################################################################
 # FILE RULES                                                                   #
@@ -127,3 +140,38 @@ $(STAR_INDEX): $(ENSEMBL_FASTA) $(ENSEMBL_GTF)
 		--genomeFastaFiles $(ENSEMBL_FASTA) \
 		--sjdbGTFfile $(ENSEMBL_GTF) \
 		--sjdbOverhang 50
+
+$(FIREBROWSE_RNASEQ):
+	mkdir -p tmp
+	cd tmp && tar -xvf gdac.broadinstitute.org_BRCA.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0.tar.gz
+	mkdir -p $(dir $(FIREBROWSE_RNASEQ))
+	python scripts/tcga_extract_counts.py --symbols tmp/gdac.broadinstitute.org_BRCA.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0/BRCA.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt $(FIREBROWSE_RNASEQ)
+	rm tmp/gdac.broadinstitute.org_BRCA.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0.tar.gz
+	rm -rf tmp/gdac.broadinstitute.org_BRCA.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0
+
+$(FIREBROWSE_CNV):
+	mkdir -p tmp
+	wget -P tmp http://gdac.broadinstitute.org/runs/analyses__2016_01_28/data/BRCA-TP/20160128/gdac.broadinstitute.org_BRCA-TP.CopyNumber_Gistic2.Level_4.2016012800.0.0.tar.gz
+	cd tmp && tar -xvf gdac.broadinstitute.org_BRCA-TP.CopyNumber_Gistic2.Level_4.2016012800.0.0.tar.gz
+	mkdir -p $(dir $(FIREBROWSE_CNV))
+	cp tmp/gdac.broadinstitute.org_BRCA-TP.CopyNumber_Gistic2.Level_4.2016012800.0.0/all_thresholded.by_genes.txt $(FIREBROWSE_CNV)
+	rm tmp/gdac.broadinstitute.org_BRCA-TP.CopyNumber_Gistic2.Level_4.2016012800.0.0.tar.gz
+	rm -rf tmp/gdac.broadinstitute.org_BRCA-TP.CopyNumber_Gistic2.Level_4.2016012800.0.0/
+
+$(TGCA_2012_PAM50):
+	mkdir -p tmp
+	wget -P tmp https://tcga-data.nci.nih.gov/docs/publications/brca_2012/BRCA.547.PAM50.SigClust.Subtypes.txt
+	mkdir -p $(dir $(TGCA_2012_PAM50))
+	mv tmp/BRCA.547.PAM50.SigClust.Subtypes.txt $(TGCA_2012_PAM50)
+
+$(TCGA_ILC_RNASEQ):
+	mkdir -p tmp
+	wget -P tmp http://cbio.mskcc.org/cancergenomics/tcga/brca_tcga/ilc/ILC_rnaseqv2_RSEM_genes_normalized_data_F2.txt
+	mkdir -p $(dir $(TCGA_ILC_RNASEQ))
+	mv tmp/ILC_rnaseqv2_RSEM_genes_normalized_data_F2.txt $(TCGA_ILC_RNASEQ)
+
+$(TCGA_ILC_SUBTYPES):
+	mkdir -p tmp
+	wget -P tmp http://www.cell.com/cms/attachment/2062298194/2064035165/mmc9.xlsx
+	mkdir -p $(dir $(TCGA_ILC_SUBTYPES))
+	mv tmp/mmc9.xlsx $(TCGA_ILC_SUBTYPES)
