@@ -17,10 +17,12 @@ are divided into the following notebooks:
 
 A. `Supplemental Tables <https://github.com/jrderuiter/ilc-sb-screen/blob/master/notebooks/A.%20Supplemental%20tables.ipynb>`_
 B. `Supplemental Figures <https://github.com/jrderuiter/ilc-sb-screen/blob/master/notebooks/B.%20Supplemental%20figures.ipynb>`_
+C. `Figshare dataset <https://github.com/jrderuiter/ilc-sb-screen/blob/master/notebooks/C.%20Figshare%20dataset.ipynb>`_
 
 In general, each notebook describes the analysis for a single Figure or set
-of results. The latter two notebooks contain a number of supplemental analyses
-that are not included in the other notebooks.
+of results. Notebooks A and B contain a number of supplemental analyses
+that are not included in the other notebooks. The Figshare notebook contains
+the code that was used to create the dataset shared on Figshare.
 
 Static versions of the notebooks can be viewed in the Github repository_.
 

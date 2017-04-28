@@ -30,13 +30,17 @@ Pre-computed
 
 To avoid re-generating the entire dataset (e.g. the insertion analysis, the
 RNA-seq alignment and quantification), we provide a pre-computed version
-of the dataset. This dataset is the same version as that was used for our
-publication and should therefore give results identical or highly similar
-to our analyses. The dataset can be downloaded as follows:
+of the dataset. This dataset (accessible under DOI 10.6084/m9.figshare.4930082)
+contains the same processed data that was used for our publication and should
+therefore give results identical or highly similar to our analyses. The dataset
+can be downloaded as follows:
 
 .. code-block:: bash
 
+    # Removes any existing data.
     rm -rf data/processed
+
+    # Downloads the frozen dataset.
     make download_freeze
 
 Note that this command first clears the current data directory, before

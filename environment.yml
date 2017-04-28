@@ -1,4 +1,4 @@
-name: sb-screen
+name: ilc-sb-screen
 channels:
   - bioconda
   - r
@@ -9,8 +9,8 @@ dependencies:
   ##############################################################################
   # General                                                                    #
   ##############################################################################
-  - python ==3.5.2
-  - pandas ==0.19
+  - python =3.5.2
+  - pandas =0.19
 
   ##############################################################################
   # Pipelines                                                                  #
@@ -30,7 +30,7 @@ dependencies:
   - sambamba =0.6.3
 
   # Insertions
-  - pyim
+  # - pyim =0.2.0
   - bioconductor-bsgenome.mmusculus.ucsc.mm10
   - cutadapt =1.12
   - bowtie2 =2.2.8
@@ -75,9 +75,3 @@ dependencies:
 
   - pip:
     - sphinx-autobuild
-
-  # MISC.
-  # - pytables ==3.2.3.1  # for hdf5
-  # - geneviz ==0.1.0-dev0
-  # ?
-  # - scikit-learn ==0.17.1
