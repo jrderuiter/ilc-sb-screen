@@ -36,7 +36,11 @@ to our analyses. The dataset can be downloaded as follows:
 
 .. code-block:: bash
 
-    TODO
+    rm -rf data/processed
+    make download_freeze
+
+Note that this command first clears the current data directory, before
+downloading and extracting the frozen dataset.
 
 From scratch
 ------------
