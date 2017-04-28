@@ -29,6 +29,8 @@ SHEAR_SPLINK_READS = data/interim/sb/shear_splink/reads
 
 PROCESSED_FREEZE_URL = https://ndownloader.figshare.com/files/8297795?private_link=dd2515b13a5d022eba4d
 
+FORCE_GH_PAGES = n
+
 ################################################################################
 # COMMANDS                                                                     #
 ################################################################################
@@ -130,6 +132,21 @@ tcga_brca_2012: $(TGCA_2012_PAM50)
 
 tcga_ilc_2015: $(TCGA_ILC_SUBTYPES) $(TCGA_ILC_RNASEQ)
 
+gh-pages:
+ifeq ($(FORCE_GH_PAGES),y)
+	git checkout gh-pages
+	find ./* -not -path '*/\.*' -prune -exec rm -r "{}" \;
+	git checkout master docs Makefile
+	git reset HEAD
+	(cd docs && make html)
+	mv -fv docs/_build/html/* ./
+	rm -rf docs Makefile
+	touch .nojekyll
+	git add -A
+	git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout master
+else
+	$(error Pass FORCE_GH_PAGES=y to generate pages)
+endif
 
 ################################################################################
 # FILE RULES                                                                   #
