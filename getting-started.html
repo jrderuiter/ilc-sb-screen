@@ -1,0 +1,371 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Getting started &mdash; ilc-sb-screen 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="ilc-sb-screen 1.0 documentation" href="index.html"/>
+        <link rel="next" title="Analysis notebooks" href="notebooks.html"/>
+        <link rel="prev" title="Introduction" href="introduction.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> ilc-sb-screen
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#setting-up-the-environment">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#generating-the-datasets">Generating the datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pre-computed">Pre-computed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#from-scratch">From scratch</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#insertion-analysis">Insertion analysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#rna-seq-analysis">RNA-seq analysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nmf-analysis">NMF analysis</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks.html">Analysis notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source.html">Source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact.html">Contact</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ilc-sb-screen</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Getting started</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/getting-started.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="getting-started">
+<span id="id1"></span><h1>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="setting-up-the-environment">
+<h2>Setting up the environment<a class="headerlink" href="#setting-up-the-environment" title="Permalink to this headline">¶</a></h2>
+<p>We use conda to ensure to create an isolated environment containing all of the
+Python packages and external tools needed for the analyses. To create the conda
+environment used for our analyses, run the following command from the sb-screen
+root directory:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>make env
+</pre></div>
+</div>
+<p>This creates an environment call <em>sb-screen</em>, which can be activated as follows:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="nb">source</span> activate sb-screen
+</pre></div>
+</div>
+</div>
+<div class="section" id="generating-the-datasets">
+<h2>Generating the datasets<a class="headerlink" href="#generating-the-datasets" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="pre-computed">
+<h3>Pre-computed<a class="headerlink" href="#pre-computed" title="Permalink to this headline">¶</a></h3>
+<p>To avoid re-generating the entire dataset (e.g. the insertion analysis, the
+RNA-seq alignment and quantification), we provide a pre-computed version
+of the dataset. This dataset is the same version as that was used for our
+publication and should therefore give results identical or highly similar
+to our analyses. The dataset can be downloaded as follows:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>rm -rf data/processed
+make download_freeze
+</pre></div>
+</div>
+<p>Note that this command first clears the current data directory, before
+downloading and extracting the frozen dataset.</p>
+</div>
+<div class="section" id="from-scratch">
+<h3>From scratch<a class="headerlink" href="#from-scratch" title="Permalink to this headline">¶</a></h3>
+<p>To help generate the dataset from scratch, we provide a number of commands
+in the Makefile that execute various scripts and Snakemake pipelines to
+generate the different data types. Note that some steps of these pipelines
+are stochastic (such as the CIS and NMF analyses). Therefore, results
+obtained from the regenerated files may not be identical to our published
+results. However, they should be highly similar.</p>
+<div class="section" id="insertion-analysis">
+<h4>Insertion analysis<a class="headerlink" href="#insertion-analysis" title="Permalink to this headline">¶</a></h4>
+<p>To run the insertion analysis, we first download the Ensembl mm10 reference
+genome and use this reference to create an index for Bowtie2. In a second
+step, we use PyIM (which requires the Bowtie2 index) to identify insertions
+in the 99 samples that show an ILC morphology (see our publication for
+more details). In a third step, we re-run this analysis using the full
+set of 123 samples, which is required for an additional analysis. These three
+steps are run using the following make commands:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="c1"># Build the reference index</span>
+make build_bowtie_index
+
+<span class="c1"># Run the ShearSplink analysis in PyIM</span>
+make shear_splink
+
+<span class="c1"># Re-run the analysis using all samples</span>
+make shear_splink_full
+</pre></div>
+</div>
+<p>For the ShearSplink commands, extra options can be passed to the underlying
+Snakemake pipeline using the SNAKEMAKE_ARGS variable. For example, to specify
+the number of cores used by Snakemake when running the pipeline, you can use
+the following command:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>make shear_splink <span class="nv">SNAKEMAKE_ARGS</span><span class="o">=</span><span class="s1">&#39;-j 5&#39;</span>
+</pre></div>
+</div>
+<p>Similarly, a dry-run of the pipeline can be performed using:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>make shear_splink <span class="nv">SNAKEMAKE_ARGS</span><span class="o">=</span><span class="s1">&#39;-n -p&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="rna-seq-analysis">
+<h4>RNA-seq analysis<a class="headerlink" href="#rna-seq-analysis" title="Permalink to this headline">¶</a></h4>
+<p>To run the RNA-seq analysis, we first download the reference genome (if this
+was not already done before) and use the reference to generate an index for
+STAR.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>make build_star_index
+</pre></div>
+</div>
+<p>Next, to ensure that we can run the STAR efficiently in parallel, we
+load this reference genome into shared memory before running the alignment.
+After this, we can run the RNA-seq pipeline for the SB tumors using the
+corresponding command. Together, this looks as follows:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>make preload_star_index
+make rnaseq_sb
+</pre></div>
+</div>
+<p>Similarly, we can run the RNA-seq analysis for the KB1P and Pten mouse models
+using the following commands:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="c1"># Run the analysis for the KB1P samples</span>
+make preload_star_index
+make rnaseq_kb1p
+
+<span class="c1"># Run the analysis for the Pten samples</span>
+make preload_star_index
+make rnaseq_pten
+</pre></div>
+</div>
+<p>Note that we need to preload the index for each run of the RNA-seq pipeline,
+as this pipeline currently unloads the shared reference during its execution.
+This may be modified in a newer version of the pipeline. However, the extra
+preloads should be instantaneous, as the shared reference is already in memory.</p>
+<p>Similar to the insertion pipeline, the RNA-seq pipeline is a Snakemake pipeline
+that can be passed extra arguments to enable parallel execution, etc.:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>make rnaseq_sb <span class="nv">SNAKEMAKE_ARGS</span><span class="o">=</span><span class="s1">&#39;-j 5&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="nmf-analysis">
+<h4>NMF analysis<a class="headerlink" href="#nmf-analysis" title="Permalink to this headline">¶</a></h4>
+<p>Because of its computationally intensive nature, the NMF factorization used
+in the subtype analysis is also pre-computed using an R script. This script
+can be run after generating the SB RNA-seq dataset, using the following command:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>make nmf
+</pre></div>
+</div>
+<p>The script performs both the rank estimation and the final factorization for
+four clusters.</p>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="notebooks.html" class="btn btn-neutral float-right" title="Analysis notebooks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="introduction.html" class="btn btn-neutral" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright .
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
