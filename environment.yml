@@ -30,10 +30,10 @@ dependencies:
   - sambamba =0.6.3
 
   # Insertions
-  # - pyim
+  - pyim
   - bioconductor-bsgenome.mmusculus.ucsc.mm10
   - cutadapt =1.12
-  # - bowtie2 =2.2.8
+  - bowtie2 =2.2.8
 
   ##############################################################################
   # Notebook                                                                   #
@@ -71,6 +71,10 @@ dependencies:
 
   # Docs
   - sphinx
+  - sphinx_rtd_theme
+
+  - pip:
+    - sphinx-autobuild
 
   # MISC.
   # - pytables ==3.2.3.1  # for hdf5
