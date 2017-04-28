@@ -24,6 +24,9 @@ TGCA_2012_PAM50 = data/external/tcga-brca-2012/BRCA.547.PAM50.SigClust.Subtypes.
 TCGA_ILC_RNASEQ = data/external/tcga-ilc-2015/ILC_rnaseqv2_RSEM_genes_normalized_data_F2.txt
 TCGA_ILC_SUBTYPES = data/external/tcga-ilc-2015/mmc9.xlsx
 
+SHEAR_SPLINK_URL = https://ndownloader.figshare.com/articles/4765111?private_link=282f6ac0a014d81e137f
+SHEAR_SPLINK_READS = data/interim/sb/shear_splink/reads
+
 ################################################################################
 # COMMANDS                                                                     #
 ################################################################################
@@ -55,23 +58,25 @@ preload_star_index: $(STAR_INDEX)
 	rm Log.out Log.progress.out Aligned.out.sam
 	rm -rf _STARtmp
 
-shear_splink: $(BOWTIE_INDEX) $(ENSEMBL_GTF)
+download_shear_splink: $(SHEAR_SPLINK_READS)
+
+shear_splink: $(BOWTIE_INDEX) $(ENSEMBL_GTF) $(SHEAR_SPLINK_READS)
 	snakemake $(SNAKEMAKE_ARGS) -s pipelines/shear-splink.snake \
 		--configfile ./configs/shear-splink.yml \
 		--config samples=data/raw/sb/samples.txt \
-				 raw_dir=data/raw/sb \
-		         interim_dir=data/interim/sb/shear_splink \
-				 processed_dir=data/processed/sb/shear_splink \
-				 log_dir=logs/sb/shear_splink
+				 reads_dir=data/interim/sb/shear_splink/reads \
+		         interim_dir=data/interim/sb/shear_splink/subset \
+				 processed_dir=data/processed/sb/shear_splink/subset \
+				 log_dir=logs/sb/shear_splink/subset
 
 shear_splink_full: $(BOWTIE_INDEX) $(ENSEMBL_GTF)
 	snakemake $(SNAKEMAKE_ARGS) -s pipelines/shear-splink.snake \
 		--configfile ./configs/shear-splink.yml \
 		--config samples=data/raw/sb/samples.txt \
-				 raw_dir=data/raw/sb \
-		         interim_dir=data/interim/sb/shear_splink_full \
-				 processed_dir=data/processed/sb/shear_splink_full \
-				 log_dir=logs/sb/shear_splink_full \
+				 reads_dir=data/interim/sb/shear_splink/reads \
+		         interim_dir=data/interim/sb/shear_splink/full \
+				 processed_dir=data/processed/sb/shear_splink/full \
+				 log_dir=logs/sb/shear_splink/full \
 				 all_samples=True \
 				 per_strain=False
 
@@ -175,3 +180,9 @@ $(TCGA_ILC_SUBTYPES):
 	wget -P tmp http://www.cell.com/cms/attachment/2062298194/2064035165/mmc9.xlsx
 	mkdir -p $(dir $(TCGA_ILC_SUBTYPES))
 	mv tmp/mmc9.xlsx $(TCGA_ILC_SUBTYPES)
+
+$(SHEAR_SPLINK_READS):
+	mkdir -p tmp
+	wget -O tmp/shearsplink_sb.zip $(SHEAR_SPLINK_URL)
+	unzip -d $(SHEAR_SPLINK_READS) tmp/shearsplink_sb.zip
+	rm tmp/shearsplink_sb.zip

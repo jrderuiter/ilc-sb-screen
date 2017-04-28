@@ -109,7 +109,9 @@ def assign_nmf_subtypes(nmf_coef):
     })
 
 
-def plot_boxplot(expr, design, gene, ax=None, **kwargs):
+def plot_boxplot(expr, design, gene, x='subtype',
+                 y='value', ax=None, **kwargs):
+
     if ax is None:
         _, ax = plt.subplots()
 
@@ -120,8 +122,6 @@ def plot_boxplot(expr, design, gene, ax=None, **kwargs):
         x='subtype',
         y='value',
         ax=ax,
-        order=SUBTYPE_ORDER,
-        palette=SUBTYPE_COLORS,
         **kwargs)
 
     ax.set_xlabel('Subtype')
@@ -129,7 +129,7 @@ def plot_boxplot(expr, design, gene, ax=None, **kwargs):
     ax.set_title(gene, fontstyle='italic')
 
     # Style xtick labels.
-    plt.setp(ax.get_xticklabels(), rotation=25)
+    plt.setp(ax.get_xticklabels(), rotation=0)
     ax.set_xlabel('')
 
     sns.despine(ax=ax)
@@ -137,7 +137,8 @@ def plot_boxplot(expr, design, gene, ax=None, **kwargs):
     return ax
 
 
-def plot_boxplots(expr, design, genes, ncols=None, figsize=None, **kwargs):
+def plot_boxplots(expr, design, genes, x='subtype', y='value',
+                  ncols=None, figsize=None, **kwargs):
     if ncols is None:
         ncols, nrows = len(genes), 1
     else:

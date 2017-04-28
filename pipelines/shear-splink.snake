@@ -20,13 +20,12 @@ if not all_samples:
     samples = samples.query('include_shearsplink == True')
 
 # Top-level data directories.
-raw_dir = config['raw_dir']
 interim_dir = config['interim_dir']
 processed_dir = config['processed_dir']
 log_dir = config['log_dir']
 
 # More fine-grained directories.
-fasta_dir = path.join(raw_dir, 'shear_splink')
+reads_dir = config['reads_dir']
 align_dir = path.join(interim_dir, 'per_run')
 split_dir = path.join(interim_dir, 'per_sample')
 merged_dir = path.join(processed_dir)
@@ -73,8 +72,8 @@ rule all:
 
 rule pyim_align:
     input:
-        fasta=path.join(fasta_dir, '{run}.TCA.454Reads.fna'),
-        mapping=path.join(fasta_dir, '{run}.TCA.454Reads.barcodes.txt')
+        fasta=path.join(reads_dir, '{run}.TCA.454Reads.fna'),
+        mapping=path.join(reads_dir, '{run}.TCA.454Reads.barcodes.txt')
     output:
         path.join(align_dir, '{run}.txt')
     params:

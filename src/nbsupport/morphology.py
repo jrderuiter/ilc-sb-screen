@@ -137,7 +137,7 @@ def plot_morphology(morphology,
     ax.set_xlim(0, num_matrix.shape[0])
 
     ax.set_title('Tumor morphology')
-    ax.set_xlabel('Samples')
+    ax.set_xlabel('Samples ({})'.format(morphology.shape[0]))
 
     # Add counts to labels.
     ax.set_yticklabels(

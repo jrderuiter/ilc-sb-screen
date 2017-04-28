@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from matplotlib.cm import ScalarMappable
+from matplotlib.patches import Patch
 from matplotlib.colors import LinearSegmentedColormap, Normalize, rgb2hex
 
 
@@ -112,3 +113,10 @@ def sort_matrix(df, sort_columns=True):
     df_sorted = df_sorted.sort_values(by=order, ascending=False)
 
     return df_sorted
+
+
+def draw_legend(color_map, ax, name=None, **kwargs):
+    patches = [Patch(
+        color=color, label=label) for label, color in color_map.items()]
+    legend = ax.legend(handles=patches, title=name, **kwargs)
+    return legend

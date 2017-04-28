@@ -13,6 +13,7 @@ import pybiomart
 import toolz
 
 from geneviz.tracks import BiomartTrack, FeatureTrack, RugTrack, plot_tracks
+from imfusion.expression.test import test_de_exon
 
 from .util.clustermap import color_annotation
 
@@ -104,7 +105,7 @@ def plot_insertion_stats(insertions, fig_kws=None, suffix='', color=None):
     # Number of insertion per sample.
     ins_sample = insertions.groupby('sample')['id'].nunique()
     ins_sample.hist(bins=15, ax=axes[3], grid=False, color=color)
-    axes[3].axvline(ins_sample.median(), linestyle='dashed', color='red')
+    # axes[3].axvline(ins_sample.median(), linestyle='dashed', color='red')
     axes[3].set_title('Number of insertions per sample' + suffix)
     axes[3].set_xlabel('Number of insertions')
     axes[3].set_ylabel('Number of samples')
@@ -656,8 +657,6 @@ def plot_orientation_bias(insertions,
     ax.set_xlabel('Number of samples')
     ax.set_ylabel('Sense fraction (weighted)')
 
-    ax.axvline(min_samples, color='darkgrey', linestyle='dashed', zorder=-1)
-
     ax.axhline(
         0.5, color=sns.color_palette()[2], alpha=0.8,
         linestyle='dashed', zorder=-1) # yapf: disable
@@ -841,3 +840,108 @@ def _add_axis_border(ax, linewidth=1):
     for spine in ax.spines.values():
         spine.set_visible(True)
         spine.set_linewidth(linewidth)
+
+
+
+def plot_de_multiple(insertions,
+                     exon_counts,
+                     gene_ids,
+                     gene_names=None,
+                     figsize=(4, 3),
+                     ncols=3,
+                     **kwargs):
+    """Plots groupwise DE for multiple genes."""
+
+    nrows = len(gene_ids) // ncols
+    if len(gene_ids) % ncols != 0:
+        nrows += 1
+
+    fig, axes = plt.subplots(ncols=ncols, nrows=nrows, figsize=figsize)
+
+    if gene_names is None:
+        gene_names = gene_ids
+
+    for gene_id, gene_name, ax in zip(gene_ids, gene_names, axes.flatten()):
+        plot_de(insertions, exon_counts, gene_id,
+                gene_name=gene_name, ax=ax, **kwargs)
+
+    _tidy_shared_axes(fig, axes, ncols=ncols,
+                      n_items=len(gene_ids), ylabel_x=-0.01)
+
+    fig.tight_layout()
+    sns.despine(fig)
+
+    return fig
+
+
+def plot_de(insertions,
+            exon_counts,
+            gene_id,
+            gene_name=None,
+            ax=None,
+            box_kws=None,
+            strip_kws=None,
+            **kwargs):
+    """Plots groupwise DE for a given gene."""
+
+    if gene_name is None:
+        gene_name = gene_id
+
+    result = test_de_exon(insertions, exon_counts, gene_id=gene_id, **kwargs)
+
+    if result.p_value <= 0.05:
+        if result.direction == 1:
+            color = sns.color_palette('Set1')[2] # Green
+        else:
+            color = sns.color_palette('Set1')[3] # Purple
+    else:
+        color = 'lightgrey'
+
+    ax = result.plot_boxplot(
+        ax=ax,
+        log=True,
+        show_points=True,
+        strip_kws=strip_kws or {},
+        box_kws=toolz.merge({'color': color}, box_kws or {}))
+
+    pval_label = _format_pval(result.p_value)
+    ax.set_title('{} ({})'.format(gene_name, pval_label), fontstyle='italic')
+
+    return ax
+
+
+def _format_pval(p_value):
+    """Helper function for formatting p-value."""
+    if p_value < 0.001:
+        return 'p<0.001'
+    else:
+        return 'p={:4.3f}'.format(p_value)
+
+
+def _tidy_shared_axes(fig, axes, ncols, n_items, ylabel_x=0):
+    """Removes duplicate labels from shared axes."""
+
+    if len(axes.shape) > 1:
+        for row in axes[:-1]:
+            for ax in row:
+                ax.set_xticks([])
+
+        ylabel = axes[0, 0].get_ylabel()
+
+        for ax in axes.flatten():
+            ax.set_ylabel('')
+
+        n_extra = ncols - (n_items % ncols)
+        if n_extra > 0:
+            for ax in axes[-1, ncols - n_extra:]:
+                ax.axis('off')
+
+            for ax in axes[-2, ncols - n_extra:]:
+                ax.set_xticks([0, 1])
+
+        fig.text(x=ylabel_x, y=0.5, s=ylabel, va='center', rotation=90)
+    else:
+        for ax in axes[1:]:
+            ax.set_ylabel('')
+
+
