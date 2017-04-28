@@ -27,6 +27,8 @@ TCGA_ILC_SUBTYPES = data/external/tcga-ilc-2015/mmc9.xlsx
 SHEAR_SPLINK_URL = https://ndownloader.figshare.com/articles/4765111?private_link=282f6ac0a014d81e137f
 SHEAR_SPLINK_READS = data/interim/sb/shear_splink/reads
 
+PROCESSED_FREEZE_URL = https://ndownloader.figshare.com/files/8297795?private_link=dd2515b13a5d022eba4d
+
 ################################################################################
 # COMMANDS                                                                     #
 ################################################################################
@@ -59,6 +61,14 @@ preload_star_index: $(STAR_INDEX)
 	rm -rf _STARtmp
 
 download_shear_splink: $(SHEAR_SPLINK_READS)
+
+download_freeze: tmp
+	if [ -d "data/processed" ]; then $(error Data directory (data/processed) already exists); fi
+	wget -O tmp/processed_freeze.tar.gz $(PROCESSED_FREEZE_URL)
+	mkdir -p data/processed
+	tar -xvf tmp/processed_freeze.tar.gz -C data/processed
+	rm tmp/processed_freeze.tar.gz
+
 
 shear_splink: $(BOWTIE_INDEX) $(ENSEMBL_GTF) $(SHEAR_SPLINK_READS)
 	snakemake $(SNAKEMAKE_ARGS) -s pipelines/shear-splink.snake \
@@ -146,16 +156,14 @@ $(STAR_INDEX): $(ENSEMBL_FASTA) $(ENSEMBL_GTF)
 		--sjdbGTFfile $(ENSEMBL_GTF) \
 		--sjdbOverhang 50
 
-$(FIREBROWSE_RNASEQ):
-	mkdir -p tmp
+$(FIREBROWSE_RNASEQ): tmp
 	cd tmp && tar -xvf gdac.broadinstitute.org_BRCA.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0.tar.gz
 	mkdir -p $(dir $(FIREBROWSE_RNASEQ))
 	python scripts/tcga_extract_counts.py --symbols tmp/gdac.broadinstitute.org_BRCA.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0/BRCA.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt $(FIREBROWSE_RNASEQ)
 	rm tmp/gdac.broadinstitute.org_BRCA.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0.tar.gz
 	rm -rf tmp/gdac.broadinstitute.org_BRCA.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0
 
-$(FIREBROWSE_CNV):
-	mkdir -p tmp
+$(FIREBROWSE_CNV): tmp
 	wget -P tmp http://gdac.broadinstitute.org/runs/analyses__2016_01_28/data/BRCA-TP/20160128/gdac.broadinstitute.org_BRCA-TP.CopyNumber_Gistic2.Level_4.2016012800.0.0.tar.gz
 	cd tmp && tar -xvf gdac.broadinstitute.org_BRCA-TP.CopyNumber_Gistic2.Level_4.2016012800.0.0.tar.gz
 	mkdir -p $(dir $(FIREBROWSE_CNV))
@@ -163,26 +171,25 @@ $(FIREBROWSE_CNV):
 	rm tmp/gdac.broadinstitute.org_BRCA-TP.CopyNumber_Gistic2.Level_4.2016012800.0.0.tar.gz
 	rm -rf tmp/gdac.broadinstitute.org_BRCA-TP.CopyNumber_Gistic2.Level_4.2016012800.0.0/
 
-$(TGCA_2012_PAM50):
-	mkdir -p tmp
+$(TGCA_2012_PAM50): tmp
 	wget -P tmp https://tcga-data.nci.nih.gov/docs/publications/brca_2012/BRCA.547.PAM50.SigClust.Subtypes.txt
 	mkdir -p $(dir $(TGCA_2012_PAM50))
 	mv tmp/BRCA.547.PAM50.SigClust.Subtypes.txt $(TGCA_2012_PAM50)
 
-$(TCGA_ILC_RNASEQ):
-	mkdir -p tmp
+$(TCGA_ILC_RNASEQ): tmp
 	wget -P tmp http://cbio.mskcc.org/cancergenomics/tcga/brca_tcga/ilc/ILC_rnaseqv2_RSEM_genes_normalized_data_F2.txt
 	mkdir -p $(dir $(TCGA_ILC_RNASEQ))
 	mv tmp/ILC_rnaseqv2_RSEM_genes_normalized_data_F2.txt $(TCGA_ILC_RNASEQ)
 
-$(TCGA_ILC_SUBTYPES):
-	mkdir -p tmp
+$(TCGA_ILC_SUBTYPES): tmp
 	wget -P tmp http://www.cell.com/cms/attachment/2062298194/2064035165/mmc9.xlsx
 	mkdir -p $(dir $(TCGA_ILC_SUBTYPES))
 	mv tmp/mmc9.xlsx $(TCGA_ILC_SUBTYPES)
 
-$(SHEAR_SPLINK_READS):
-	mkdir -p tmp
+$(SHEAR_SPLINK_READS): tmp
 	wget -O tmp/shearsplink_sb.zip $(SHEAR_SPLINK_URL)
 	unzip -d $(SHEAR_SPLINK_READS) tmp/shearsplink_sb.zip
 	rm tmp/shearsplink_sb.zip
+
+tmp:
+	mkdir -p tmp
