@@ -37,7 +37,7 @@
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="ilc-sb-screen 1.0 documentation" href="index.html"/>
         <link rel="next" title="Analysis notebooks" href="notebooks.html"/>
-        <link rel="prev" title="Introduction" href="introduction.html"/> 
+        <link rel="prev" title="Introduction" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -91,7 +91,7 @@
             
             
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="index.html">Introduction</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Getting started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#setting-up-the-environment">Setting up the environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#generating-the-datasets">Generating the datasets</a><ul>
@@ -195,10 +195,14 @@ root directory:</p>
 <h3>Pre-computed<a class="headerlink" href="#pre-computed" title="Permalink to this headline">¶</a></h3>
 <p>To avoid re-generating the entire dataset (e.g. the insertion analysis, the
 RNA-seq alignment and quantification), we provide a pre-computed version
-of the dataset. This dataset is the same version as that was used for our
-publication and should therefore give results identical or highly similar
-to our analyses. The dataset can be downloaded as follows:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>rm -rf data/processed
+of the dataset. This dataset (accessible under DOI 10.6084/m9.figshare.4930082)
+contains the same processed data that was used for our publication and should
+therefore give results identical or highly similar to our analyses. The dataset
+can be downloaded as follows:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="c1"># Removes any existing data.</span>
+rm -rf data/processed
+
+<span class="c1"># Downloads the frozen dataset.</span>
 make download_freeze
 </pre></div>
 </div>
@@ -309,7 +313,7 @@ four clusters.</p>
         <a href="notebooks.html" class="btn btn-neutral float-right" title="Analysis notebooks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="introduction.html" class="btn btn-neutral" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

@@ -6,7 +6,7 @@ The notebooks and other source code are available on GitHub_. This includes
 the pre-processing pipelines and data files required to reproduce the
 RNA-seq and insertion analyses.
 
-The respository has the following structure:
+The repository has the following structure:
 
 .. parsed-literal::
 
@@ -14,9 +14,9 @@ The respository has the following structure:
     ├── LICENSE
     ├── Makefile           <- Makefile with commands.
     ├── README.md          <- The top-level README for developers using this project.
-    |
+    │
     ├── configs            <- Configs for the Snakemake pipelines.
-    |
+    │
     ├── data
     │   ├── external       <- Data from third party sources.
     │   ├── interim        <- Intermediate data that has been transformed.
@@ -28,13 +28,13 @@ The respository has the following structure:
     ├── notebooks          <- Jupyter notebooks.
     │
     ├── pipelines          <- Snakemake pipeline definitions.
-    |
+    │
     ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
     ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
     │   │── figures        <- Main figure panels.
     │   │── supplemental   <- Supplemental figures/tables.
-    |   └── tables         <- Main tables.
+    │   └── tables         <- Main tables.
     │
     └── src                <- Source code for use in this project.
        └── nbsupport       <- Module containing notebook supporting code.
