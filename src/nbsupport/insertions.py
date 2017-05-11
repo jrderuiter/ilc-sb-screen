@@ -537,11 +537,6 @@ def plot_gene_clonality(insertions,
         label_data = data
     else:
         label_data = data.ix[data['n_samples'] >= label_min_freq]
-        ax.axvline(
-            label_min_freq - 0.5,
-            color='darkgrey',
-            linestyle='dashed',
-            zorder=0)
 
     _draw_labels(label_data, ax=ax, offsets=label_offsets, **(label_kws or {}))
 
@@ -707,7 +702,7 @@ def plot_insertion_track(insertions,
         filter=filter,
         gene_id='gene_name',
         patch_kws={'linewidth': linewidth},
-        line_kws={'lw': 1},
+        line_kws={'linewidth': 1},
         label_kws={'fontstyle': 'italic'})
 
     fig = plot_tracks(
@@ -842,7 +837,6 @@ def _add_axis_border(ax, linewidth=1):
         spine.set_linewidth(linewidth)
 
 
-
 def plot_de_multiple(insertions,
                      exon_counts,
                      gene_ids,
@@ -862,11 +856,16 @@ def plot_de_multiple(insertions,
         gene_names = gene_ids
 
     for gene_id, gene_name, ax in zip(gene_ids, gene_names, axes.flatten()):
-        plot_de(insertions, exon_counts, gene_id,
-                gene_name=gene_name, ax=ax, **kwargs)
+        plot_de(
+            insertions,
+            exon_counts,
+            gene_id,
+            gene_name=gene_name,
+            ax=ax,
+            **kwargs)
 
-    _tidy_shared_axes(fig, axes, ncols=ncols,
-                      n_items=len(gene_ids), ylabel_x=-0.01)
+    _tidy_shared_axes(
+        fig, axes, ncols=ncols, n_items=len(gene_ids), ylabel_x=-0.01)
 
     fig.tight_layout()
     sns.despine(fig)
@@ -891,9 +890,9 @@ def plot_de(insertions,
 
     if result.p_value <= 0.05:
         if result.direction == 1:
-            color = sns.color_palette('Set1')[2] # Green
+            color = sns.color_palette('Set1')[2]  # Green
         else:
-            color = sns.color_palette('Set1')[3] # Purple
+            color = sns.color_palette('Set1')[3]  # Purple
     else:
         color = 'lightgrey'
 
@@ -902,7 +901,9 @@ def plot_de(insertions,
         log=True,
         show_points=True,
         strip_kws=strip_kws or {},
-        box_kws=toolz.merge({'color': color}, box_kws or {}))
+        box_kws=toolz.merge({
+            'color': color
+        }, box_kws or {}))
 
     pval_label = _format_pval(result.p_value)
     ax.set_title('{} ({})'.format(gene_name, pval_label), fontstyle='italic')
@@ -943,5 +944,3 @@ def _tidy_shared_axes(fig, axes, ncols, n_items, ylabel_x=0):
     else:
         for ax in axes[1:]:
             ax.set_ylabel('')
-
-

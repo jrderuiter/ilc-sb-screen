@@ -14,6 +14,7 @@ __pycache__
 # Project dirs.
 _bak
 _old
+.vscode
 data/external/*
 data/interim/*
 data/processed/*

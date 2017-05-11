@@ -1,3 +1,9 @@
-
 savefig.dpi: 72
 figure.dpi: 72
+pdf.fonttype : 42
+
+axes.edgecolor: black
+axes.labelcolor: black
+text.color: black
+xtick.color: black
+ytick.color: black

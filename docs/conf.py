@@ -47,6 +47,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'ilc-sb-screen'
+copyright = u'2017, Julian de Ruiter'
+author = u'Julian de Ruiter'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

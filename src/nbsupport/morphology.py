@@ -260,7 +260,7 @@ def test_strain_bias(data,
     result.columns.name = None
 
     result['p_value'] = [
-        fisher_exact(np.reshape(tup[1:], [2, 2]))[1]
+        fisher_exact(np.reshape(tup[1:], [2, 2]), alternative='two-sided')[1]
         for tup in result.itertuples()
     ]
 
